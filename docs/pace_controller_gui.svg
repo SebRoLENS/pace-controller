@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1240" height="760" viewBox="0 0 1240 760" role="img" aria-labelledby="title desc">
+  <title id="title">PACE Controller interface preview</title>
+  <desc id="desc">Preview of the Windows interface with live pressure cards, two persistent leak warnings, prominent mode tabs, and manual pressure controls.</desc>
+  <defs>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="5" stdDeviation="8" flood-color="#16324a" flood-opacity="0.18"/>
+    </filter>
+    <style>
+      .ui { font-family: "Segoe UI", Arial, sans-serif; fill: #243746; }
+      .small { font-size: 13px; }
+      .label { font-size: 14px; fill: #60717e; }
+      .value { font-size: 20px; font-weight: 700; }
+      .tab { font-size: 15px; font-weight: 700; }
+      .title { font-size: 17px; font-weight: 700; }
+      .status { font-size: 18px; font-weight: 800; }
+    </style>
+  </defs>
+
+  <rect width="1240" height="760" fill="#e8edf1"/>
+  <rect x="28" y="22" width="1184" height="716" rx="10" fill="#f8fafb" stroke="#9aa9b3" filter="url(#shadow)"/>
+  <rect x="28" y="22" width="1184" height="42" rx="10" fill="#234d70"/>
+  <rect x="28" y="54" width="1184" height="10" fill="#234d70"/>
+  <text class="ui title" x="50" y="49" fill="#ffffff">PACE Pressure Controller 0.2.0</text>
+  <circle cx="1175" cy="43" r="7" fill="#dce7ef"/>
+  <circle cx="1150" cy="43" r="7" fill="#dce7ef"/>
+
+  <rect x="44" y="78" width="1152" height="62" rx="6" fill="#ffffff" stroke="#c7d1d8"/>
+  <text class="ui label" x="62" y="103">PACE IP</text>
+  <rect x="122" y="87" width="130" height="27" rx="3" fill="#ffffff" stroke="#91a3af"/>
+  <text class="ui small" x="133" y="106">192.168.10.2</text>
+  <text class="ui label" x="272" y="103">Porta</text>
+  <rect x="319" y="87" width="70" height="27" rx="3" fill="#ffffff" stroke="#91a3af"/>
+  <text class="ui small" x="334" y="106">5025</text>
+  <text class="ui label" x="410" y="103">Modulo</text>
+  <rect x="473" y="87" width="48" height="27" rx="3" fill="#ffffff" stroke="#91a3af"/>
+  <text class="ui small" x="493" y="106">1</text>
+  <rect x="545" y="84" width="105" height="32" rx="4" fill="#dff3e4" stroke="#6b9c76"/>
+  <text class="ui small" x="570" y="105" font-weight="700">Connetti</text>
+  <rect x="663" y="84" width="110" height="32" rx="4" fill="#f5f6f7" stroke="#9daab2"/>
+  <text class="ui small" x="680" y="105">Disconnetti</text>
+  <text class="ui small" x="796" y="105" fill="#2c7b42" font-weight="700">Connesso: DRUCK,PACE6000</text>
+  <text class="ui small" x="62" y="130">Range: 0.000 ... 210.000 bar</text>
+  <text class="ui small" x="548" y="130" fill="#a33a3a">Margine sorgente minimo: 2.0 bar</text>
+
+  <g transform="translate(44,154)">
+    <rect width="1152" height="86" rx="6" fill="#dfe5e9"/>
+    <g transform="translate(10,8)"><rect width="166" height="70" rx="4" fill="#ffffff" stroke="#bac6ce"/><text class="ui label" x="10" y="22">Pressione attuale</text><text class="ui value" x="10" y="52">1.250000 bar</text></g>
+    <g transform="translate(186,8)"><rect width="166" height="70" rx="4" fill="#ffffff" stroke="#bac6ce"/><text class="ui label" x="10" y="22">Pressione target</text><text class="ui value" x="10" y="52">1.250000 bar</text></g>
+    <g transform="translate(362,8)"><rect width="154" height="70" rx="4" fill="#ffffff" stroke="#bac6ce"/><text class="ui label" x="10" y="22">Sorgente positiva</text><text class="ui value" x="10" y="52">6.800 bar</text></g>
+    <g transform="translate(526,8)"><rect width="150" height="70" rx="4" fill="#ffffff" stroke="#bac6ce"/><text class="ui label" x="10" y="22">Slew misurata</text><text class="ui value" x="10" y="52">0.000 bar/s</text></g>
+    <g transform="translate(686,8)"><rect width="130" height="70" rx="4" fill="#ffffff" stroke="#bac6ce"/><text class="ui label" x="10" y="22">Stato</text><text class="ui value" x="10" y="52" fill="#315fa6">MEASURE</text></g>
+    <g transform="translate(826,8)"><rect width="140" height="70" rx="4" fill="#ffffff" stroke="#bac6ce"/><text class="ui label" x="10" y="22">Target</text><text class="ui value" x="10" y="52" fill="#2f7c47">IN LIMIT</text></g>
+    <g transform="translate(976,8)"><rect width="166" height="70" rx="4" fill="#ffffff" stroke="#bac6ce"/><text class="ui label" x="10" y="22">Margine sorgente</text><text class="ui value" x="10" y="52" fill="#2f7c47">5.550 bar</text></g>
+  </g>
+
+  <text class="ui small" x="445" y="263" font-weight="700">MONITORAGGIO PERDITE — valutazione automatica in MEASURE</text>
+  <g transform="translate(44,272)">
+    <rect width="568" height="91" rx="7" fill="#e4f5e8" stroke="#76a981" stroke-width="2"/>
+    <text class="ui small" x="18" y="22" font-weight="700">TENUTA LATO CAMPIONE</text>
+    <text class="ui status" x="284" y="54" text-anchor="middle" fill="#28743d">NO PERDITA</text>
+    <text class="ui small" x="284" y="77" text-anchor="middle" fill="#60717e">Calo stimato: 0.001800 bar/10 min | dati: 10.0 min</text>
+    <rect x="584" width="568" height="91" rx="7" fill="#fff5d5" stroke="#d7b64a" stroke-width="2"/>
+    <text class="ui small" x="602" y="22" font-weight="700">TENUTA INLET / SORGENTE POSITIVA</text>
+    <text class="ui status" x="868" y="54" text-anchor="middle" fill="#a57600">ATTENZIONE, lieve perdita</text>
+    <text class="ui small" x="868" y="77" text-anchor="middle" fill="#60717e">Calo stimato: 0.007000 bar/10 min | dati: 6.4 min</text>
+  </g>
+
+  <g transform="translate(44,382)">
+    <rect width="180" height="42" rx="5" fill="#d7e7f5" stroke="#5d86a6" stroke-width="2"/><text class="ui tab" x="90" y="27" text-anchor="middle">1  MANUALE</text>
+    <rect x="190" width="180" height="42" rx="5" fill="#ffffff" stroke="#aab7c0"/><text class="ui tab" x="280" y="27" text-anchor="middle">2  INDENTING</text>
+    <rect x="380" width="180" height="42" rx="5" fill="#ffffff" stroke="#aab7c0"/><text class="ui tab" x="470" y="27" text-anchor="middle">3  ROUTINE</text>
+    <rect x="570" width="190" height="42" rx="5" fill="#ffffff" stroke="#aab7c0"/><text class="ui tab" x="665" y="27" text-anchor="middle">4  IMPOSTAZIONI</text>
+    <rect x="770" width="140" height="42" rx="5" fill="#ffffff" stroke="#aab7c0"/><text class="ui tab" x="840" y="27" text-anchor="middle">LOG</text>
+  </g>
+
+  <rect x="44" y="434" width="1152" height="248" rx="5" fill="#f5f7f8" stroke="#c7d1d8"/>
+  <g transform="translate(84,460)">
+    <rect width="430" height="190" rx="6" fill="#ffffff" stroke="#aebbc4"/>
+    <text class="ui title" x="18" y="28">Nuovo target</text>
+    <text class="ui label" x="24" y="62">Pressione target (bar)</text><rect x="250" y="43" width="145" height="28" rx="3" fill="#ffffff" stroke="#91a3af"/><text class="ui small" x="262" y="62">1.25</text>
+    <text class="ui label" x="24" y="98">Slew rate (bar/s)</text><rect x="250" y="79" width="145" height="28" rx="3" fill="#ffffff" stroke="#91a3af"/><text class="ui small" x="262" y="98">0.10</text>
+    <text class="ui label" x="24" y="134">Modalità slew</text><rect x="250" y="115" width="145" height="28" rx="3" fill="#ffffff" stroke="#91a3af"/><text class="ui small" x="262" y="134">Lineare</text>
+    <rect x="24" y="151" width="154" height="29" rx="4" fill="#d7e7f5" stroke="#6b8da7"/><text class="ui small" x="52" y="170" font-weight="700">Applica target</text>
+    <rect x="194" y="151" width="201" height="29" rx="4" fill="#f8dedf" stroke="#b4787b"/><text class="ui small" x="224" y="170" font-weight="700">MEASURE / STOP</text>
+  </g>
+  <g transform="translate(548,460)">
+    <rect width="500" height="190" rx="6" fill="#ffffff" stroke="#aebbc4"/>
+    <text class="ui title" x="18" y="28">Parametri di pressurizzazione</text>
+    <text class="ui label" x="24" y="62">Modalità controllo</text><rect x="277" y="43" width="185" height="28" rx="3" fill="#ffffff" stroke="#91a3af"/><text class="ui small" x="289" y="62">Active</text>
+    <text class="ui label" x="24" y="98">Tolleranza (% FS)</text><rect x="277" y="79" width="185" height="28" rx="3" fill="#ffffff" stroke="#91a3af"/><text class="ui small" x="289" y="98">0.01</text>
+    <text class="ui label" x="24" y="134">Vent rate (bar/s)</text><rect x="277" y="115" width="185" height="28" rx="3" fill="#ffffff" stroke="#91a3af"/><text class="ui small" x="289" y="134">0.10</text>
+    <rect x="24" y="151" width="180" height="29" rx="4" fill="#fff3ca" stroke="#b9a15f"/><text class="ui small" x="58" y="170">VENT controllato</text>
+    <rect x="222" y="151" width="240" height="29" rx="4" fill="#f2f4f5" stroke="#9aa8b1"/><text class="ui small" x="276" y="170">Rileggi parametri</text>
+  </g>
+
+  <rect x="44" y="696" width="1152" height="27" rx="4" fill="#ffffff" stroke="#c7d1d8"/>
+  <text class="ui small" x="58" y="714" font-weight="700">Pronto — monitoraggio perdite attivo</text>
+  <text class="ui small" x="1178" y="714" text-anchor="end">PACE Controller v0.2.0</text>
+</svg>

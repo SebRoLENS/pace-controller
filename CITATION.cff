@@ -1,0 +1,26 @@
+cff-version: 1.2.0
+message: "If you use PACE Controller in your work, please cite or acknowledge this software."
+title: "PACE Controller"
+type: software
+authors:
+  - family-names: Romi
+    given-names: S.
+    orcid: "https://orcid.org/0000-0002-9553-7788"
+repository-code: "https://github.com/SebRoLENS/pace-controller"
+url: "https://github.com/SebRoLENS/pace-controller/releases/tag/v0.2.0"
+version: "0.2.0"
+date-released: 2026-08-28
+license: MIT
+keywords:
+  - Druck PACE
+  - pressure controller
+  - SCPI
+  - instrument control
+  - laboratory automation
+  - WinForms
+  - PowerShell
+abstract: >-
+  PACE Controller is a Windows graphical interface for classic Druck PACE 5000
+  and PACE 6000 pressure controllers connected through Ethernet. It provides
+  telemetry, target and slew control, programmable routines, source-margin
+  protection, and sample/inlet pressure-loss monitoring.

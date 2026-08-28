@@ -1,0 +1,17 @@
+[
+  {
+    "Target": 1.0,
+    "Slew": 0.1,
+    "Dwell": 120
+  },
+  {
+    "Target": 2.0,
+    "Slew": 0.2,
+    "Dwell": 120
+  },
+  {
+    "Target": 0.0,
+    "Slew": 0.1,
+    "Dwell": 0
+  }
+]

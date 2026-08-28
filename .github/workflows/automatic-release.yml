@@ -1,0 +1,255 @@
+name: Automatic release
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'PACE_Controller.ps1'
+      - '.release-trigger'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pace-controller-release-pipeline
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    if: github.actor != 'github-actions[bot]' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.prepare.outputs.version }}
+      commit_sha: ${{ steps.commit.outputs.commit_sha }}
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Install manual dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pandoc texlive-xetex texlive-latex-extra texlive-fonts-recommended
+
+      - name: Validate source before release
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path './PACE_Controller.ps1'),
+            [ref]$tokens,
+            [ref]$errors
+          ) | Out-Null
+          if ($errors.Count -gt 0) {
+            $errors | Format-List | Out-String | Write-Error
+            throw "PowerShell parser found $($errors.Count) error(s)."
+          }
+          python tests/test_project.py
+
+      - name: Prepare semantic version and metadata
+        id: prepare
+        run: |
+          VERSION="$(python3 .github/scripts/prepare_release.py)"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Preparing PACE Controller v$VERSION"
+
+      - name: Build versioned PDF manual
+        run: |
+          pandoc docs/PACE_Controller_Manual.md \
+            --from markdown \
+            --resource-path=.:docs \
+            --pdf-engine=xelatex \
+            --output docs/PACE_Controller_Manual.pdf
+          test -s docs/PACE_Controller_Manual.pdf
+
+      - name: Validate prepared release
+        run: |
+          VERSION="${{ steps.prepare.outputs.version }}"
+          python tests/test_project.py
+          python - <<'PY'
+          import re
+          from pathlib import Path
+
+          version = "${{ steps.prepare.outputs.version }}"
+          script = Path("PACE_Controller.ps1").read_text(encoding="utf-8")
+          found = re.search(r'^\$script:Version\s*=\s*"([^"]+)"', script, re.M)
+          if not found or found.group(1) != version:
+              raise SystemExit(f"Source version mismatch: expected {version}")
+          for path in ["README.md", "docs/PACE_Controller_Manual.md", "CITATION.cff"]:
+              if version not in Path(path).read_text(encoding="utf-8"):
+                  raise SystemExit(f"{path} does not contain {version}")
+          if not Path("docs/PACE_Controller_Manual.pdf").is_file():
+              raise SystemExit("PDF manual missing")
+          print(f"Release metadata validated for v{version}")
+          PY
+
+      - name: Commit prepared release
+        id: commit
+        run: |
+          set -euo pipefail
+          VERSION="${{ steps.prepare.outputs.version }}"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add PACE_Controller.ps1 README.md CITATION.cff CHANGELOG.md \
+            docs/PACE_Controller_Manual.md docs/PACE_Controller_Manual.pdf
+          if ! git diff --cached --quiet; then
+            git commit -m "Prepare v${VERSION} release"
+            git fetch origin main
+            git rebase origin/main
+            git push origin HEAD:main
+          fi
+          COMMIT_SHA="$(git rev-parse HEAD)"
+          echo "commit_sha=$COMMIT_SHA" >> "$GITHUB_OUTPUT"
+
+      - name: Create immutable release tag
+        env:
+          VERSION: ${{ steps.prepare.outputs.version }}
+        run: |
+          set -euo pipefail
+          if git ls-remote --exit-code --tags origin "refs/tags/v${VERSION}" >/dev/null 2>&1; then
+            echo "Tag v${VERSION} already exists; refusing to overwrite it."
+            exit 1
+          fi
+          git tag "v${VERSION}" "${{ steps.commit.outputs.commit_sha }}"
+          git push origin "v${VERSION}"
+
+  windows-exe:
+    name: Windows executable (x86_64)
+    needs: prepare
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: v${{ needs.prepare.outputs.version }}
+
+      - name: Parse source on Windows PowerShell
+        shell: powershell
+        run: |
+          $tokens = $null
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path '.\PACE_Controller.ps1'),
+            [ref]$tokens,
+            [ref]$errors
+          ) | Out-Null
+          if ($errors.Count -gt 0) {
+            $errors | Format-List | Out-String | Write-Error
+            throw "PowerShell parser found $($errors.Count) error(s)."
+          }
+
+      - name: Install PS2EXE
+        shell: powershell
+        run: |
+          Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+          Install-Module ps2exe -Scope CurrentUser -Force -AllowClobber
+          Import-Module ps2exe -Force
+
+      - name: Build standalone executable
+        shell: powershell
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          $output = "PACE-Controller-v$env:VERSION-Windows-x86_64.exe"
+          $fileVersion = "$env:VERSION.0"
+          Invoke-PS2EXE `
+            -InputFile '.\PACE_Controller.ps1' `
+            -OutputFile $output `
+            -NoConsole `
+            -RequireAdmin `
+            -Title 'PACE Controller' `
+            -Product 'PACE Controller' `
+            -Company 'SebRoLENS' `
+            -Copyright 'Copyright (c) 2026 SebRoLENS' `
+            -Version $fileVersion
+          if (-not (Test-Path $output)) { throw 'Executable was not generated.' }
+          $bytes = [System.IO.File]::ReadAllBytes((Resolve-Path $output))
+          if ($bytes.Length -lt 2 -or $bytes[0] -ne 0x4D -or $bytes[1] -ne 0x5A) {
+            throw 'Generated file does not have a valid Windows PE header.'
+          }
+          Get-Item $output | Format-List Name,Length
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: pace-controller-windows
+          path: PACE-Controller-v${{ needs.prepare.outputs.version }}-Windows-x86_64.exe
+          if-no-files-found: error
+
+  source-package:
+    name: Source archive and manual
+    needs: prepare
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: v${{ needs.prepare.outputs.version }}
+
+      - name: Create offline source package
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          set -euo pipefail
+          PACKAGE="PACE-Controller-v${VERSION}-source"
+          mkdir -p "$PACKAGE/examples" "$PACKAGE/docs"
+          cp PACE_Controller.ps1 Avvia_PACE_Controller.bat README.md LICENSE "$PACKAGE/"
+          cp examples/routine_esempio.json "$PACKAGE/examples/"
+          cp docs/PACE_Controller_Manual.md docs/PACE_Controller_Manual.pdf "$PACKAGE/docs/"
+          zip -r "${PACKAGE}.zip" "$PACKAGE"
+          test -s "${PACKAGE}.zip"
+          cp docs/PACE_Controller_Manual.pdf PACE_Controller_Manual.pdf
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: pace-controller-source
+          path: |
+            PACE-Controller-v${{ needs.prepare.outputs.version }}-source.zip
+            PACE_Controller_Manual.pdf
+          if-no-files-found: error
+
+  publish:
+    name: Publish GitHub release
+    needs: [prepare, windows-exe, source-package]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          pattern: pace-controller-*
+          path: release-assets
+          merge-multiple: true
+
+      - name: Generate checksums
+        run: |
+          cd release-assets
+          sha256sum PACE-Controller-* PACE_Controller_Manual.pdf > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      - name: Publish validated release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          cat > /tmp/release-notes.md <<EOF
+          ## PACE Controller v${VERSION}
+
+          Validated automated release for Windows x86_64.
+
+          Assets include the standalone unsigned executable, complete offline
+          source package, versioned PDF manual, and SHA-256 checksums.
+
+          **Safety:** validate the software at low pressure on an unloaded setup.
+          Software interlocks do not replace hardware pressure protections.
+          EOF
+          gh release create "v${VERSION}" release-assets/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "${{ needs.prepare.outputs.commit_sha }}" \
+            --title "PACE Controller v${VERSION}" \
+            --notes-file /tmp/release-notes.md \
+            --verify-tag
