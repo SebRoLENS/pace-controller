@@ -42,7 +42,8 @@ class ProjectTests(unittest.TestCase):
             "MinimumSupplyMarginBar = 2.0",
             "Invoke-SupplyMarginInterlock",
             "Update-LeakMonitoring",
-            "ATTENZIONE, PERDITA SIGNIFICATIVA PRESSIONE",
+            'SignificantLeak = "WARNING: SIGNIFICANT PRESSURE LEAK"',
+            'SignificantLeak = "ATTENZIONE, PERDITA SIGNIFICATIVA PRESSIONE"',
         ]
         for token in required:
             with self.subTest(token=token):
@@ -77,6 +78,21 @@ class ProjectTests(unittest.TestCase):
             self.assertIn("Target", step)
             self.assertGreater(float(step["Slew"]), 0)
             self.assertGreaterEqual(float(step["Dwell"]), 0)
+
+    def test_localization_lock_and_screenshot_mode(self) -> None:
+        required = [
+            '[string]$Language = "en"',
+            '[ValidateSet("en", "it")]',
+            '$script:AdvancedParametersUnlocked = $false',
+            'DangerWarning = "DANGER AREA:',
+            'DangerWarning = "AREA PERICOLOSA:',
+            "Update-AdvancedParameterLockUi",
+            "Export-InterfaceScreenshot",
+            "$form.DrawToBitmap",
+        ]
+        for token in required:
+            with self.subTest(token=token):
+                self.assertIn(token, self.script)
 
     def test_release_files_exist(self) -> None:
         expected = [

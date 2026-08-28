@@ -2,6 +2,13 @@
 
 All notable changes are documented here. The project follows semantic versioning.
 
+## [0.3.0] - 2026-08-28
+
+- Added complete English-default localization with persistent Italian selection.
+- Locked pressurization parameters behind a padlock and explicit danger-area confirmation.
+- Added a hardware-free screenshot mode and automated real WinForms screenshot generation.
+- Updated README and manual for the bilingual interface and parameter lock.
+
 ## [0.2.1] - 2026-08-28
 
 - Automated validated maintenance release.

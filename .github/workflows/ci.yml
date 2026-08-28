@@ -37,6 +37,20 @@ jobs:
       - name: Run repository checks
         run: python tests/test_project.py
 
+      - name: Smoke-test real GUI rendering
+        shell: powershell
+        run: |
+          $output = Join-Path $env:RUNNER_TEMP 'pace-controller-ui.png'
+          & .\PACE_Controller.ps1 -Language en -ScreenshotPath $output
+          if (-not (Test-Path $output)) { throw 'GUI screenshot was not generated.' }
+          $image = [System.Drawing.Image]::FromFile($output)
+          try {
+            if ($image.Width -lt 1000 -or $image.Height -lt 650) {
+              throw "Unexpected screenshot dimensions: $($image.Width)x$($image.Height)"
+            }
+          }
+          finally { $image.Dispose() }
+
       - name: Validate JSON example
         shell: pwsh
         run: Get-Content examples/routine_esempio.json -Raw | ConvertFrom-Json | Out-Null

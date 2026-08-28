@@ -17,8 +17,47 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  screenshot:
+    name: Render real WinForms screenshot
+    runs-on: windows-2022
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Render the current interface offline
+        shell: powershell
+        run: |
+          & .\PACE_Controller.ps1 `
+            -Language en `
+            -ScreenshotPath (Join-Path $PWD 'docs\pace_controller_gui.png')
+          $image = [System.Drawing.Image]::FromFile((Resolve-Path 'docs\pace_controller_gui.png'))
+          try {
+            if ($image.Width -lt 1000 -or $image.Height -lt 650) {
+              throw "Unexpected screenshot dimensions: $($image.Width)x$($image.Height)"
+            }
+          }
+          finally { $image.Dispose() }
+
+      - name: Commit the current real screenshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/pace_controller_gui.png
+          if ! git diff --cached --quiet; then
+            git commit -m 'Update real interface screenshot [skip ci]'
+            git fetch origin main
+            git rebase origin/main
+            git push origin HEAD:main
+          fi
+
   prepare:
     if: github.actor != 'github-actions[bot]' || github.event_name == 'workflow_dispatch'
+    needs: screenshot
     runs-on: ubuntu-24.04
     outputs:
       version: ${{ steps.prepare.outputs.version }}

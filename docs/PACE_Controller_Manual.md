@@ -1,7 +1,7 @@
 ---
 title: "PACE Controller - User and Technical Manual"
 author: "S. Romi"
-date: "Version 0.2.1 - 2026"
+date: "Version 0.3.0 - 2026"
 geometry: margin=2.2cm
 colorlinks: true
 lang: en
@@ -9,7 +9,7 @@ lang: en
 
 # PACE Controller
 
-User and technical manual for version **0.2.1**.
+User and technical manual for version **0.3.0**.
 
 ## 1. Scope
 
@@ -81,6 +81,8 @@ Download `PACE-Controller-vX.Y.Z-Windows-x86_64.exe`, place it in a writable fol
 
 The executable is currently unsigned. Windows SmartScreen may therefore ask for confirmation.
 
+The interface starts in English. Select **Italiano** from the language selector to switch the complete interface to Italian. The selected language is stored in `PACE_controller_settings.json`.
+
 ### 5.2 Source version
 
 Extract the complete source archive and double-click `Avvia_PACE_Controller.bat`. Do not move the launcher away from `PACE_Controller.ps1`.
@@ -98,7 +100,7 @@ The top section remains visible from every page and displays:
 - in-limits state;
 - positive-source margin.
 
-Immediately below it, two large panels display sample-side and inlet-side leak status. The operating pages are MANUALE, INDENTING, ROUTINE, IMPOSTAZIONI, and LOG.
+Immediately below it, two large panels display sample-side and inlet-side leak status. The operating pages are MANUAL, INDENTING, ROUTINE, SETTINGS, and LOG.
 
 ## 7. Manual control
 
@@ -115,13 +117,17 @@ The keep-CONTROL option is off by default. When it is off, the program requests 
 
 ### 7.2 Pressurization parameters
 
+This panel is read-only by default. To edit it, press the padlock button inside the panel. The program displays a danger-area warning and unlocks the fields only after explicit confirmation. Press the padlock again to lock the panel. It is locked again automatically after disconnection or module selection.
+
+Unlocking affects the following settings and action:
+
 - **Control mode:** Active, Passive, or Gauge, corresponding to the selected PACE output mode.
 - **Overshoot:** enables or disables the PACE overshoot option.
 - **In-limits tolerance:** percentage of full scale used by the controller to declare target reached.
 - **In-limits time:** required stable duration before target confirmation.
 - **Vent rate:** controlled vent rate in bar/s.
 
-The VENT command always requires confirmation.
+The VENT command remains protected by its own confirmation even after the panel has been unlocked.
 
 ## 8. Indenting cycle
 
@@ -148,15 +154,11 @@ Each table row contains:
 
 Rows are executed from top to bottom. A step begins its dwell only after the PACE reports in-limits. Routines can be saved and loaded as JSON. See `examples/routine_esempio.json`.
 
-At completion the program requests MEASURE unless **Mantieni CONTROL alla fine** was explicitly selected. Timeouts or user interruption request MEASURE.
+At completion the program requests MEASURE unless **Keep CONTROL at the end** was explicitly selected. Timeouts or user interruption request MEASURE.
 
 ## 10. Source-margin interlock
 
-The source margin is defined as:
-
-\[
-P_{margin}=P_{source,+}-P_{current}.
-\]
+The source margin is defined as $P_{\mathrm{margin}} = P_{\mathrm{source,+}} - P_{\mathrm{current}}$.
 
 When the PACE is in CONTROL and the margin becomes lower than 2.0 bar, the software:
 
@@ -182,9 +184,9 @@ Only decreases are interpreted as losses. Increases produce a zero loss rate.
 
 ### 11.2 Operating condition
 
-The rolling histories are collected only in MEASURE. During CONTROL or an active automation they are cleared and both panels show **VALUTAZIONE IN PAUSA (CONTROL)**. This avoids treating an intentional pressure change or source consumption as a leak.
+The rolling histories are collected only in MEASURE. During CONTROL or an active automation they are cleared and both panels show **ASSESSMENT PAUSED (CONTROL)**. This avoids treating an intentional pressure change or source consumption as a leak.
 
-After returning to MEASURE the collection starts again. Until sufficient history is available, the panel shows **IN VALUTAZIONE** rather than claiming that no leak exists.
+After returning to MEASURE the collection starts again. Until sufficient history is available, the panel shows **ASSESSING** rather than claiming that no leak exists.
 
 ### 11.3 Calculation
 
@@ -194,16 +196,16 @@ With the defaults, the continuous classes are:
 
 | Display | Colour | Equivalent fitted loss rate |
 | --- | --- | --- |
-| `NO PERDITA` | green | <=0.0005 bar/min |
-| `ATTENZIONE, lieve perdita` | yellow | >0.0005 and <=0.001 bar/min |
-| `ATTENZIONE, perdita pressione` | orange | >0.001 and <=0.005 bar/min |
-| `ATTENZIONE, PERDITA SIGNIFICATIVA PRESSIONE` | red | >0.005 bar/min |
+| `NO LEAK` | green | <=0.0005 bar/min |
+| `WARNING: slight leak` | yellow | >0.0005 and <=0.001 bar/min |
+| `WARNING: pressure leak` | orange | >0.001 and <=0.005 bar/min |
+| `WARNING: SIGNIFICANT PRESSURE LEAK` | red | >0.005 bar/min |
 
 Green is confirmed only after 10 minutes. Yellow requires at least 5 minutes and orange at least 1 minute. A red state can be issued earlier when the reference loss is already exceeded inside the orange interval or a sufficiently clear fast slope is observed.
 
 ### 11.4 Custom thresholds
 
-The IMPOSTAZIONI page allows editing:
+The SETTINGS page allows editing:
 
 - reference pressure drop, default 0.005 bar;
 - green time, default 10 min;
@@ -229,7 +231,7 @@ The application directory can contain:
 
 - `PACE_controller_data.csv`: timestamped telemetry;
 - `PACE_controller_log.txt`: commands, responses, state changes, errors, and interlock events;
-- `PACE_controller_settings.json`: persistent leak thresholds;
+- `PACE_controller_settings.json`: persistent leak thresholds and language selection;
 - user-selected JSON routine files.
 
 ## 14. Troubleshooting

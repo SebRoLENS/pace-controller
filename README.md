@@ -13,9 +13,9 @@ It reads pressure and source telemetry, controls target pressure and slew rate, 
 
 ## Interface
 
-![PACE Controller interface preview](docs/pace_controller_gui.png)
+![PACE Controller interface](docs/pace_controller_gui.png)
 
-The two leak indicators remain visible in every operating page. The image is a faithful interface preview generated from the current layout; the displayed values are illustrative rather than readings from a connected instrument.
+The two leak indicators remain visible on every operating page. This is a real WinForms rendering generated automatically from the current application source in offline screenshot mode. The displayed values are simulated and no commands are sent to an instrument.
 
 ## Download
 
@@ -50,12 +50,14 @@ At startup the application identifies the single safe, dedicated Ethernet adapte
 - Live display of current pressure, target, positive and negative source pressure, measured slew, valve effort, CONTROL/MEASURE state, in-limits state, and source margin.
 - Manual target with linear or maximum slew rate.
 - Active, Passive, or Gauge control mode; overshoot, in-limits tolerance/time, and controlled vent settings.
+- Pressurization parameters are read-only by default. Editing requires pressing the padlock and explicitly confirming a danger-area warning.
 - Optional **Keep CONTROL at target**; disabled by default.
 - **Indenting** cycle: reach target, dwell for 120 s, return to zero at the same slew, then switch to MEASURE.
 - Editable multi-step routines with independent target, slew, and dwell values; JSON save/load.
 - Automatic CSV telemetry and diagnostic logging.
 - Prominent sample-side and positive-inlet leak indicators.
 - User-adjustable and persistent leak thresholds.
+- Complete English interface by default, with Italian selectable from the language menu. The choice is saved between sessions.
 
 ## Software protections
 
@@ -81,10 +83,10 @@ Only pressure decreases are treated as losses. Evaluation runs in MEASURE and pa
 
 | Status | Default loss rate |
 | --- | --- |
-| **NO PERDITA** — green | up to 0.005 bar in 10 min |
-| **ATTENZIONE, lieve perdita** — yellow | above 0.005/10 min and up to 0.005/5 min |
-| **ATTENZIONE, perdita pressione** — orange | above 0.005/5 min and up to 0.005/1 min |
-| **ATTENZIONE, PERDITA SIGNIFICATIVA PRESSIONE** — red | above 0.005 bar/min |
+| **NO LEAK** — green | up to 0.005 bar in 10 min |
+| **WARNING: slight leak** — yellow | above 0.005/10 min and up to 0.005/5 min |
+| **WARNING: pressure leak** — orange | above 0.005/5 min and up to 0.005/1 min |
+| **WARNING: SIGNIFICANT PRESSURE LEAK** — red | above 0.005 bar/min |
 
 The trend is estimated by linear regression over the available rolling history. Green requires a complete green observation interval; faster warnings can be issued earlier. Temperature drift, regulator behaviour, sensor noise, and specimen relaxation can resemble a leak, so the indication must be interpreted experimentally.
 
@@ -104,13 +106,13 @@ The source version requires only Windows PowerShell 5.1 and the Windows networki
 
 ## Automated releases
 
-Changes to `PACE_Controller.ps1` on `main` trigger a validated release pipeline. It updates the semantic patch version unless a newer version was set manually, synchronizes the README/manual/citation/changelog, generates the PDF manual, builds the standalone Windows executable, creates a source archive and checksums, tags the commit, and publishes the GitHub release.
+Changes to `PACE_Controller.ps1` on `main` trigger a validated release pipeline. It renders and commits a real screenshot from the current WinForms source, updates the semantic patch version unless a newer version was set manually, synchronizes the README/manual/citation/changelog, generates the PDF manual, builds the standalone Windows executable, creates a source archive and checksums, tags the commit, and publishes the GitHub release.
 
 A manual release can also be requested from **Actions → Automatic release → Run workflow**, or by deliberately updating `.release-trigger`.
 
 ## Version
 
-Current public version: **0.2.1**
+Current public version: **0.3.0**
 
 ## License and independence
 
