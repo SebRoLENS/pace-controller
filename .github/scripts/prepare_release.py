@@ -78,8 +78,8 @@ def update_readme(new: str) -> None:
 def update_manual(new: str) -> None:
     text = MANUAL.read_text(encoding="utf-8")
     text, date_count = re.subn(
-        r'(?m)^date: "Version \d+\.\d+\.\d+ — \d{4}"$',
-        f'date: "Version {new} — {dt.date.today().year}"',
+        r'(?m)^date: "Version \d+\.\d+\.\d+ - \d{4}"$',
+        f'date: "Version {new} - {dt.date.today().year}"',
         text,
         count=1,
     )

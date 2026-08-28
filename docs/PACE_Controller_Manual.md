@@ -1,7 +1,7 @@
 ---
-title: "PACE Controller — User and Technical Manual"
+title: "PACE Controller - User and Technical Manual"
 author: "S. Romi"
-date: "Version 0.2.0 — 2026"
+date: "Version 0.2.0 - 2026"
 geometry: margin=2.2cm
 colorlinks: true
 lang: en
@@ -194,9 +194,9 @@ With the defaults, the continuous classes are:
 
 | Display | Colour | Equivalent fitted loss rate |
 | --- | --- | --- |
-| `NO PERDITA` | green | ≤0.0005 bar/min |
-| `ATTENZIONE, lieve perdita` | yellow | >0.0005 and ≤0.001 bar/min |
-| `ATTENZIONE, perdita pressione` | orange | >0.001 and ≤0.005 bar/min |
+| `NO PERDITA` | green | <=0.0005 bar/min |
+| `ATTENZIONE, lieve perdita` | yellow | >0.0005 and <=0.001 bar/min |
+| `ATTENZIONE, perdita pressione` | orange | >0.001 and <=0.005 bar/min |
 | `ATTENZIONE, PERDITA SIGNIFICATIVA PRESSIONE` | red | >0.005 bar/min |
 
 Green is confirmed only after 10 minutes. Yellow requires at least 5 minutes and orange at least 1 minute. A red state can be issued earlier when the reference loss is already exceeded inside the orange interval or a sufficiently clear fast slope is observed.
