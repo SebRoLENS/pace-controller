@@ -7,8 +7,8 @@ authors:
     given-names: S.
     orcid: "https://orcid.org/0000-0002-9553-7788"
 repository-code: "https://github.com/SebRoLENS/pace-controller"
-url: "https://github.com/SebRoLENS/pace-controller/releases/tag/v0.3.0"
-version: "0.3.0"
+url: "https://github.com/SebRoLENS/pace-controller/releases/tag/v0.3.1"
+version: "0.3.1"
 date-released: 2026-08-28
 license: MIT
 keywords:

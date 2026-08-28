@@ -47,7 +47,7 @@ At startup the application identifies the single safe, dedicated Ethernet adapte
 
 ## Main features
 
-- Live display of current pressure, target, positive and negative source pressure, measured slew, valve effort, CONTROL/MEASURE state, in-limits state, and source margin.
+- Live display of current pressure, target, positive and negative source pressure, measured slew, valve effort, CONTROL/MEASURE state, in-limits state, and source margin. All nine telemetry cards are visible together on two rows; numeric values use three decimal places.
 - Manual target with linear or maximum slew rate.
 - Active, Passive, or Gauge control mode; overshoot, in-limits tolerance/time, and controlled vent settings.
 - Pressurization parameters are read-only by default. Editing requires pressing the padlock and explicitly confirming a danger-area warning.
@@ -112,7 +112,7 @@ A manual release can also be requested from **Actions → Automatic release → 
 
 ## Version
 
-Current public version: **0.3.0**
+Current public version: **0.3.1**
 
 ## License and independence
 

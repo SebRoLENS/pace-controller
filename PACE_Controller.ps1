@@ -13,7 +13,7 @@ Add-Type -AssemblyName System.Drawing
 
 [System.Windows.Forms.Application]::EnableVisualStyles()
 
-$script:Version = "0.3.0"
+$script:Version = "0.3.1"
 $script:LanguageWasSpecified = $PSBoundParameters.ContainsKey("Language")
 $script:Language = $Language
 $script:IsScreenshotMode = -not [string]::IsNullOrWhiteSpace($ScreenshotPath)
@@ -1269,12 +1269,12 @@ function Poll-PaceData {
         $script:CurrentInLimit = $inLimit
         $script:PollFailures = 0
 
-        $script:lblPressureValue.Text = $pressure.ToString("0.000000", $script:Culture) + " bar"
-        $script:lblTargetValue.Text = $target.ToString("0.000000", $script:Culture) + " bar"
+        $script:lblPressureValue.Text = $pressure.ToString("0.000", $script:Culture) + " bar"
+        $script:lblTargetValue.Text = $target.ToString("0.000", $script:Culture) + " bar"
         $script:lblSourcePlusValue.Text = if ([double]::IsNaN($sourcePositive)) { T "Unavailable" } else { $sourcePositive.ToString("0.000", $script:Culture) + " bar" }
         $script:lblSourceMinusValue.Text = if ([double]::IsNaN($sourceNegative)) { T "Unavailable" } else { $sourceNegative.ToString("0.000", $script:Culture) + " bar" }
-        $script:lblSlewValue.Text = if ([double]::IsNaN($actualSlew)) { T "Unavailable" } else { $actualSlew.ToString("0.0000", $script:Culture) + " bar/s" }
-        $script:lblEffortValue.Text = if ([double]::IsNaN($effort)) { T "Unavailable" } else { $effort.ToString("0.0", $script:Culture) + " %" }
+        $script:lblSlewValue.Text = if ([double]::IsNaN($actualSlew)) { T "Unavailable" } else { $actualSlew.ToString("0.000", $script:Culture) + " bar/s" }
+        $script:lblEffortValue.Text = if ([double]::IsNaN($effort)) { T "Unavailable" } else { $effort.ToString("0.000", $script:Culture) + " %" }
         $script:lblModeValue.Text = if ($script:CurrentOutputOn) { "CONTROL" } else { "MEASURE" }
         $script:lblModeValue.ForeColor = if ($script:CurrentOutputOn) { [Drawing.Color]::Firebrick } else { [Drawing.Color]::RoyalBlue }
         $script:lblLimitValue.Text = if ($inLimit) { "IN LIMIT" } else { T "InMotion" }
@@ -1584,27 +1584,28 @@ $script:lblConnection = Make-Label (T "NotConnected") 710 7 300 31
 $script:lblConnection.Font = New-Object Drawing.Font("Segoe UI", 9, [Drawing.FontStyle]::Bold)
 $script:lblConnection.ForeColor = [Drawing.Color]::Firebrick
 $connectionPanel.Controls.Add($script:lblConnection)
-$script:lblRange = Make-Label "Range: --" 12 41 450 22
+$script:lblRange = Make-Label "Range: --" 12 41 325 22
 $connectionPanel.Controls.Add($script:lblRange)
-$warningLabel = Make-LocalizedLabel "CommandsWarning" 480 41 650 22
+$warningLabel = Make-LocalizedLabel "CommandsWarning" 565 41 650 22
 $warningLabel.ForeColor = [Drawing.Color]::DarkRed
 $connectionPanel.Controls.Add($warningLabel)
 
-$connectionPanel.Controls.Add((Make-LocalizedLabel "Language" 1020 9 72 24))
+$connectionPanel.Controls.Add((Make-LocalizedLabel "Language" 350 41 72 22))
 $script:cmbLanguage = New-Object System.Windows.Forms.ComboBox
 $script:cmbLanguage.DropDownStyle = [System.Windows.Forms.ComboBoxStyle]::DropDownList
 [void]$script:cmbLanguage.Items.AddRange(@("English", "Italiano"))
 $script:cmbLanguage.SelectedIndex = if ($script:Language -eq "it") { 1 } else { 0 }
-$script:cmbLanguage.Location = New-Object Drawing.Point(1095, 9)
+$script:cmbLanguage.Location = New-Object Drawing.Point(425, 40)
 $script:cmbLanguage.Size = New-Object Drawing.Size(125, 24)
 $connectionPanel.Controls.Add($script:cmbLanguage)
 
 $metricsFlow = New-Object System.Windows.Forms.FlowLayoutPanel
 $metricsFlow.Dock = [System.Windows.Forms.DockStyle]::Top
-$metricsFlow.Height = 96
+$metricsFlow.Height = 194
 $metricsFlow.Padding = New-Object System.Windows.Forms.Padding(8)
-$metricsFlow.WrapContents = $false
-$metricsFlow.AutoScroll = $true
+$metricsFlow.WrapContents = $true
+$metricsFlow.AutoScroll = $false
+$metricsFlow.FlowDirection = [System.Windows.Forms.FlowDirection]::LeftToRight
 $metricsFlow.BackColor = [Drawing.Color]::Gainsboro
 $script:lblPressureValue = Add-LocalizedMetricCard $metricsFlow "CurrentPressure" 165
 $script:lblTargetValue = Add-LocalizedMetricCard $metricsFlow "TargetPressure" 165
@@ -2179,17 +2180,20 @@ function Export-InterfaceScreenshot {
         [void][IO.Directory]::CreateDirectory($directory)
     }
 
+    $form.StartPosition = [System.Windows.Forms.FormStartPosition]::Manual
+    $form.Location = New-Object Drawing.Point(0, 0)
+    $form.Size = New-Object Drawing.Size(1280, 860)
     $script:tabs.Enabled = $true
     $script:tabs.SelectedIndex = 0
     $script:lblConnection.Text = T "ScreenshotDemo"
     $script:lblConnection.ForeColor = [Drawing.Color]::DarkSlateBlue
     $script:lblRange.Text = "Range: 0.000 ... 200.000 bar"
-    $script:lblPressureValue.Text = "25.000000 bar"
-    $script:lblTargetValue.Text = "25.000000 bar"
+    $script:lblPressureValue.Text = "25.000 bar"
+    $script:lblTargetValue.Text = "25.000 bar"
     $script:lblSourcePlusValue.Text = "62.000 bar"
     $script:lblSourceMinusValue.Text = "0.000 bar"
-    $script:lblSlewValue.Text = "0.0000 bar/s"
-    $script:lblEffortValue.Text = "2.6 %"
+    $script:lblSlewValue.Text = "0.000 bar/s"
+    $script:lblEffortValue.Text = "2.600 %"
     $script:lblModeValue.Text = "MEASURE"
     $script:lblModeValue.ForeColor = [Drawing.Color]::RoyalBlue
     $script:lblLimitValue.Text = "IN LIMIT"
@@ -2203,6 +2207,7 @@ function Export-InterfaceScreenshot {
     Update-AdvancedParameterLockUi
 
     $form.Show()
+    $form.Size = New-Object Drawing.Size(1280, 860)
     [System.Windows.Forms.Application]::DoEvents()
     Start-Sleep -Milliseconds 500
     $form.Refresh()

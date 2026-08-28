@@ -94,6 +94,19 @@ class ProjectTests(unittest.TestCase):
             with self.subTest(token=token):
                 self.assertIn(token, self.script)
 
+    def test_telemetry_cards_wrap_and_use_three_decimals(self) -> None:
+        required = [
+            "$metricsFlow.WrapContents = $true",
+            "$metricsFlow.AutoScroll = $false",
+            '$pressure.ToString("0.000", $script:Culture)',
+            '$target.ToString("0.000", $script:Culture)',
+            '$actualSlew.ToString("0.000", $script:Culture)',
+            '$effort.ToString("0.000", $script:Culture)',
+        ]
+        for token in required:
+            with self.subTest(token=token):
+                self.assertIn(token, self.script)
+
     def test_release_files_exist(self) -> None:
         expected = [
             ".github/workflows/ci.yml",

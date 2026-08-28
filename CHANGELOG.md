@@ -2,6 +2,12 @@
 
 All notable changes are documented here. The project follows semantic versioning.
 
+## [0.3.1] - 2026-08-28
+
+- Kept the language selector visible at the minimum supported window width.
+- Captured the complete default-size interface in automated screenshots.
+- Arranged all telemetry cards on two visible rows and standardized displayed numeric values to three decimal places.
+
 ## [0.3.0] - 2026-08-28
 
 - Added complete English-default localization with persistent Italian selection.

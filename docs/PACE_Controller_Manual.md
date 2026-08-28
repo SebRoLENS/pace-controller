@@ -1,7 +1,7 @@
 ---
 title: "PACE Controller - User and Technical Manual"
 author: "S. Romi"
-date: "Version 0.3.0 - 2026"
+date: "Version 0.3.1 - 2026"
 geometry: margin=2.2cm
 colorlinks: true
 lang: en
@@ -9,7 +9,7 @@ lang: en
 
 # PACE Controller
 
-User and technical manual for version **0.3.0**.
+User and technical manual for version **0.3.1**.
 
 ## 1. Scope
 
@@ -99,6 +99,8 @@ The top section remains visible from every page and displays:
 - CONTROL or MEASURE state;
 - in-limits state;
 - positive-source margin.
+
+All nine telemetry cards are arranged on two rows so they remain visible together without horizontal scrolling. Pressure, target, source, slew, valve-effort, and source-margin values are displayed with three decimal places. The CSV telemetry file retains the values received from the instrument without this display-only rounding.
 
 Immediately below it, two large panels display sample-side and inlet-side leak status. The operating pages are MANUAL, INDENTING, ROUTINE, SETTINGS, and LOG.
 
