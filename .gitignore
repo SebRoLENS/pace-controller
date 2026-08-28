@@ -1,0 +1,14 @@
+PACE_controller_data.csv
+PACE_controller_log.txt
+PACE_controller_settings.json
+dist/
+build/
+*.spec
+*.exe
+*.zip
+SHA256SUMS.txt
+__pycache__/
+*.pyc
+.pytest_cache/
+.DS_Store
+Thumbs.db
