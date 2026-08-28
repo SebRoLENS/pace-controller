@@ -2,6 +2,14 @@
 
 All notable changes are documented here. The project follows semantic versioning.
 
+## [1.0.0] - 2026-08-28
+
+- Added a separate Python/PySide6 implementation for Windows and Linux.
+- Added interchangeable Ethernet TCP, RS-232, and offline simulator transports.
+- Preserved all manual, indenting, routine, leak-monitoring, logging, and safety features.
+- Added automatic Windows and Linux packaging, real Qt screenshots, tests, and cross-platform documentation.
+- Kept the validated PowerShell/WinForms v0.3.1 implementation unchanged.
+
 ## [0.3.1] - 2026-08-28
 
 - Kept the language selector visible at the minimum supported window width.

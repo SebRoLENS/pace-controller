@@ -10,5 +10,11 @@ SHA256SUMS.txt
 __pycache__/
 *.pyc
 .pytest_cache/
+.venv/
+cross_platform/*.spec
+cross_platform/dist/
+cross_platform/build/
+cross_platform/src/*.egg-info/
+cross_platform/src/*/*.egg-info/
 .DS_Store
 Thumbs.db

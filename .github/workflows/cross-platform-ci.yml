@@ -1,0 +1,58 @@
+name: Validate cross-platform application
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: ${{ matrix.os }} / Python ${{ matrix.python }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2022, ubuntu-22.04]
+        python: ['3.10', '3.12']
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+          cache-dependency-path: cross_platform/requirements-dev.txt
+
+      - name: Install Linux Qt runtime libraries
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libegl1 libgl1 libxkbcommon0 libxkbcommon-x11-0 libdbus-1-3 libfontconfig1 libxcb-cursor0 libxcb-xkb1 libxcb-image0 libxcb-icccm4 libxcb-render-util0 libxcb-keysyms1 libxcb-shape0 libxcb-randr0 libxcb-xfixes0
+
+      - name: Install application and tests
+        working-directory: cross_platform
+        run: python -m pip install -r requirements-dev.txt
+
+      - name: Compile and test
+        working-directory: cross_platform
+        run: |
+          python -m compileall -q src
+          python -m pytest -q
+
+      - name: Render the real GUI offscreen
+        if: matrix.python == '3.12'
+        working-directory: cross_platform
+        env:
+          QT_QPA_PLATFORM: offscreen
+          PACE_CONTROLLER_DATA_DIR: ${{ runner.temp }}/pace-controller-data
+        run: |
+          python -m pace_controller --language en --screenshot "${{ runner.temp }}/pace-controller-ui.png"
+          python -c "from PySide6.QtGui import QImage; import sys; i=QImage(sys.argv[1]); assert not i.isNull() and i.width() >= 1000 and i.height() >= 700, (i.width(), i.height())" "${{ runner.temp }}/pace-controller-ui.png"
+
+      - name: Verify frozen legacy implementation
+        shell: bash
+        run: |
+          echo 'aa6ffe5431dfab7d2ea998f9b59e8ac5163b0e3478e84a3c15e2e826fb356b8e  PACE_Controller.ps1' | sha256sum --check

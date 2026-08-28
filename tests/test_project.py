@@ -23,15 +23,15 @@ class ProjectTests(unittest.TestCase):
             raise AssertionError("PowerShell version not found")
         cls.version = match.group(1)
 
-    def test_release_metadata_versions_match(self) -> None:
+    def test_legacy_release_metadata_is_retained(self) -> None:
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         manual = (ROOT / "docs" / "PACE_Controller_Manual.md").read_text(
             encoding="utf-8"
         )
-        citation = (ROOT / "CITATION.cff").read_text(encoding="utf-8")
-        self.assertIn(f"Current public version: **{self.version}**", readme)
+        changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+        self.assertIn(f"v{self.version}", readme)
         self.assertIn(f"version **{self.version}**", manual)
-        self.assertRegex(citation, rf'(?m)^version: "{re.escape(self.version)}"$')
+        self.assertIn(f"## [{self.version}]", changelog)
 
     def test_critical_scpi_and_protections_are_present(self) -> None:
         required = [
