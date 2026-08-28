@@ -68,7 +68,8 @@ def replace_one(path: Path, pattern: str, replacement: str, label: str) -> None:
 def assert_legacy_unchanged() -> None:
     import hashlib
 
-    actual = hashlib.sha256(LEGACY.read_bytes()).hexdigest()
+    canonical = LEGACY.read_bytes().replace(b"\r\n", b"\n")
+    actual = hashlib.sha256(canonical).hexdigest()
     if actual != LEGACY_HASH:
         raise SystemExit(
             "PACE_Controller.ps1 changed unexpectedly; the validated v0.3.1 source is frozen"

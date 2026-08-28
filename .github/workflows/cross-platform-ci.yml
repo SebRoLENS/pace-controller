@@ -55,4 +55,4 @@ jobs:
       - name: Verify frozen legacy implementation
         shell: bash
         run: |
-          echo 'aa6ffe5431dfab7d2ea998f9b59e8ac5163b0e3478e84a3c15e2e826fb356b8e  PACE_Controller.ps1' | sha256sum --check
+          python -c "from pathlib import Path; import hashlib; data=Path('PACE_Controller.ps1').read_bytes().replace(b'\r\n', b'\n'); assert hashlib.sha256(data).hexdigest() == 'aa6ffe5431dfab7d2ea998f9b59e8ac5163b0e3478e84a3c15e2e826fb356b8e'"

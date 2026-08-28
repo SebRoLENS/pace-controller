@@ -20,7 +20,8 @@ PROJECT = Path(__file__).resolve().parents[1]
 
 def test_legacy_windows_controller_is_untouched() -> None:
     expected = (PROJECT / "LEGACY_SHA256.txt").read_text(encoding="utf-8").split()[0]
-    actual = hashlib.sha256((ROOT / "PACE_Controller.ps1").read_bytes()).hexdigest()
+    canonical = (ROOT / "PACE_Controller.ps1").read_bytes().replace(b"\r\n", b"\n")
+    actual = hashlib.sha256(canonical).hexdigest()
     assert actual == expected
 
 
