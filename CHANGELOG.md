@@ -2,6 +2,10 @@
 
 All notable changes are documented here. The project follows semantic versioning.
 
+## [0.2.1] - 2026-08-28
+
+- Automated validated maintenance release.
+
 ## [0.2.0] - 2026-08-28
 
 - Added persistent sample-side and positive-inlet leak indicators.

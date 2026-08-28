@@ -1,7 +1,7 @@
 ---
 title: "PACE Controller - User and Technical Manual"
 author: "S. Romi"
-date: "Version 0.2.0 - 2026"
+date: "Version 0.2.1 - 2026"
 geometry: margin=2.2cm
 colorlinks: true
 lang: en
@@ -9,7 +9,7 @@ lang: en
 
 # PACE Controller
 
-User and technical manual for version **0.2.0**.
+User and technical manual for version **0.2.1**.
 
 ## 1. Scope
 

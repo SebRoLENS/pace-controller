@@ -10,7 +10,7 @@ Add-Type -AssemblyName System.Drawing
 
 [System.Windows.Forms.Application]::EnableVisualStyles()
 
-$script:Version = "0.2.0"
+$script:Version = "0.2.1"
 $script:Connection = $null
 $script:Connected = $false
 $script:PollFailures = 0

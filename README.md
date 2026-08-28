@@ -110,7 +110,7 @@ A manual release can also be requested from **Actions → Automatic release → 
 
 ## Version
 
-Current public version: **0.2.0**
+Current public version: **0.2.1**
 
 ## License and independence
 
