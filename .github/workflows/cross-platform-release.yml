@@ -43,7 +43,7 @@ jobs:
           QT_QPA_PLATFORM: offscreen
           PACE_CONTROLLER_DATA_DIR: ${{ runner.temp }}/pace-controller-data
         run: |
-          python -m pip install -r requirements.txt
+          python -m pip install .
           python -m pace_controller --language en --screenshot docs/pace_controller_gui.png
           python -c "from PySide6.QtGui import QImage; i=QImage('docs/pace_controller_gui.png'); assert not i.isNull() and i.width() >= 1000 and i.height() >= 700, (i.width(), i.height())"
 
