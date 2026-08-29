@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import hashlib
 import importlib.util
+import json
 import socket
+import subprocess
 import threading
 import time
 from pathlib import Path
@@ -10,6 +12,7 @@ from pathlib import Path
 import pytest
 
 from pace_controller import __version__
+from pace_controller import network
 from pace_controller.external import host_environment
 from pace_controller.i18n import STRINGS
 from pace_controller.leak import LeakMonitor
@@ -183,6 +186,99 @@ def test_tcp_transport_matches_validated_pace_line_endings() -> None:
     assert not server.is_alive()
     assert not server_errors
     assert received == [b"*IDN?\r\n", b":UNIT1:PRES?\r\n"]
+
+
+def test_tcp_transport_binds_the_dedicated_adapter(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[object] = []
+
+    class FakeSocket:
+        def setsockopt(self, level: int, option: int, value: int) -> None:
+            calls.append(("setsockopt", level, option, value))
+
+        def settimeout(self, timeout: float) -> None:
+            calls.append(("settimeout", timeout))
+
+        def shutdown(self, how: int) -> None:
+            calls.append(("shutdown", how))
+
+        def close(self) -> None:
+            calls.append(("close",))
+
+    def fake_create_connection(
+        destination: tuple[str, int],
+        timeout: float,
+        source_address: tuple[str, int] | None = None,
+    ) -> FakeSocket:
+        calls.append(("connect", destination, timeout, source_address))
+        return FakeSocket()
+
+    monkeypatch.setattr(socket, "create_connection", fake_create_connection)
+    transport = TcpTransport(
+        "192.168.10.2", 5025, timeout=4.0, source_address="192.168.10.1"
+    )
+    transport.connect()
+    transport.close()
+
+    assert calls[0] == (
+        "connect",
+        ("192.168.10.2", 5025),
+        4.0,
+        ("192.168.10.1", 0),
+    )
+    assert ("setsockopt", socket.IPPROTO_TCP, socket.TCP_NODELAY, 1) in calls
+
+
+def test_windows_auto_network_waits_adds_route_and_restores(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[list[str]] = []
+    responses = iter(
+        [
+            subprocess.CompletedProcess(
+                [],
+                0,
+                stdout=json.dumps(
+                    [
+                        {
+                            "Index": 3,
+                            "Name": "PACE Ethernet",
+                            "IPs": ["169.254.233.163"],
+                            "HasGateway": False,
+                        },
+                        {
+                            "Index": 16,
+                            "Name": "Corporate",
+                            "IPs": ["10.0.0.20"],
+                            "HasGateway": True,
+                        },
+                    ]
+                ),
+                stderr="",
+            ),
+            subprocess.CompletedProcess([], 0, stdout="", stderr=""),
+            subprocess.CompletedProcess([], 0, stdout="created\n", stderr=""),
+            subprocess.CompletedProcess([], 0, stdout="", stderr=""),
+        ]
+    )
+
+    def fake_run(command: list[str], **_: object) -> subprocess.CompletedProcess[str]:
+        calls.append(command)
+        return next(responses)
+
+    monkeypatch.setattr(network.subprocess, "run", fake_run)
+    lease = network._configure_windows("192.168.10.1", 24)
+
+    assert lease == network.NetworkLease(
+        "3", True, "Windows", True, "192.168.10.1"
+    )
+    assert "-PolicyStore ActiveStore" in calls[1][-1]
+    assert "AddressState -eq 'Preferred'" in calls[2][-1]
+    assert "New-NetRoute" in calls[2][-1]
+
+    network.restore_dedicated_adapter(lease)
+    cleanup = calls[3][-1]
+    assert "Remove-NetRoute" in cleanup
+    assert "Remove-NetIPAddress" in cleanup
 
 
 @pytest.mark.parametrize(
