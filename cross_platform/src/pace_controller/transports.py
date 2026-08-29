@@ -35,21 +35,37 @@ class ScpiTransport(ABC):
 
 
 class TcpTransport(ScpiTransport):
-    def __init__(self, host: str, port: int = 5025, timeout: float = 2.0) -> None:
+    def __init__(
+        self,
+        host: str,
+        port: int = 5025,
+        timeout: float = 2.0,
+        source_address: str | None = None,
+    ) -> None:
         self.host = host
         self.port = port
         self.timeout = timeout
+        self.source_address = source_address
         self._socket: socket.socket | None = None
         self._buffer = bytearray()
         self._lock = threading.Lock()
 
     def connect(self) -> None:
         self.close()
+        connection: socket.socket | None = None
         try:
-            self._socket = socket.create_connection((self.host, self.port), self.timeout)
-            self._socket.settimeout(self.timeout)
+            source = (self.source_address, 0) if self.source_address else None
+            connection = socket.create_connection(
+                (self.host, self.port), self.timeout, source_address=source
+            )
+            connection.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+            connection.settimeout(self.timeout)
+            self._socket = connection
         except OSError as exc:
-            raise TransportError(f"TCP {self.host}:{self.port}: {exc}") from exc
+            if connection is not None:
+                connection.close()
+            via = f" via {self.source_address}" if self.source_address else ""
+            raise TransportError(f"TCP {self.host}:{self.port}{via}: {exc}") from exc
 
     def close(self) -> None:
         if self._socket is not None:
@@ -337,9 +353,16 @@ class SimulatorTransport(ScpiTransport):
         return " ".join(command.strip().upper().split())
 
 
-def create_transport(config: ConnectionConfig) -> ScpiTransport:
+def create_transport(
+    config: ConnectionConfig, *, source_address: str | None = None
+) -> ScpiTransport:
     if config.kind == ConnectionKind.ETHERNET:
-        return TcpTransport(config.host, config.port, config.timeout)
+        return TcpTransport(
+            config.host,
+            config.port,
+            config.timeout,
+            source_address=source_address,
+        )
     if config.kind == ConnectionKind.SERIAL:
         if not config.serial_port:
             raise TransportError("No serial port selected")

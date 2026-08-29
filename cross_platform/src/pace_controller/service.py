@@ -208,9 +208,12 @@ class PaceService(QObject):
                     raise
                 self._network_lease = configure_dedicated_adapter()
                 self._write_log(
-                    f"Temporarily configured dedicated adapter {self._network_lease.interface} for 192.168.10.1/24."
+                    f"Prepared dedicated adapter {self._network_lease.interface} "
+                    "and route for 192.168.10.1/24."
                 )
-                self._transport = create_transport(config)
+                self._transport = create_transport(
+                    config, source_address=self._network_lease.source_address
+                )
                 self._transport.connect()
 
             identity = self._query("*IDN?")
@@ -590,4 +593,3 @@ class PaceService(QObject):
 
     def _emit_alarm(self, key: str, **values: object) -> None:
         self.alarm.emit({"key": key, **values})
-
