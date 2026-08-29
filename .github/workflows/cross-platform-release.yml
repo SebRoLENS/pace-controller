@@ -11,6 +11,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 concurrency:
   group: pace-controller-cross-platform-release
@@ -294,6 +295,8 @@ jobs:
           - frozen legacy PowerShell/WinForms v0.3.1 retained unchanged.
 
           **Safety:** validate the software at low pressure on an unloaded setup. Software interlocks do not replace hardware pressure protections or operator supervision.
+
+          **Zenodo DOI:** pending archival or repository integration.
           EOF
           gh release create "v${VERSION}" release-assets/* \
             --repo "$GITHUB_REPOSITORY" \
@@ -301,3 +304,13 @@ jobs:
             --title "PACE Controller v${VERSION}" \
             --notes-file /tmp/release-notes.md \
             --verify-tag
+
+      - name: Dispatch Zenodo DOI sync
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          gh workflow run sync-zenodo-doi.yml \
+            --repo "$GITHUB_REPOSITORY" \
+            --ref main \
+            -f "version=${VERSION}"

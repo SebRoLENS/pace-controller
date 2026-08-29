@@ -10,6 +10,9 @@ All notable changes are documented here. The project follows semantic versioning
 - Ignored an empty line-feed fragment when a CRLF instrument reply is split
   across TCP packets.
 - Added a loopback TCP regression test for the complete connection handshake.
+- Added a bilingual Help menu, author/affiliation acknowledgements, and a
+  direct GitHub issue-reporting action with robust frozen-Linux link opening.
+- Added automatic post-release Zenodo DOI discovery and metadata synchronisation.
 
 ## [1.0.0] - 2026-08-28
 

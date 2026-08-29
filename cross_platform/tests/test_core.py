@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import importlib.util
 import socket
 import threading
 import time
@@ -9,6 +10,7 @@ from pathlib import Path
 import pytest
 
 from pace_controller import __version__
+from pace_controller.external import host_environment
 from pace_controller.i18n import STRINGS
 from pace_controller.leak import LeakMonitor
 from pace_controller.models import LeakThresholds
@@ -38,6 +40,75 @@ def test_metadata_version_matches() -> None:
 
 def test_translations_have_identical_keys() -> None:
     assert set(STRINGS["en"]) == set(STRINGS["it"])
+
+
+def test_frozen_environment_is_removed_before_opening_host_links() -> None:
+    cleaned = host_environment(
+        {
+            "PATH": "/usr/bin",
+            "LD_LIBRARY_PATH": "/tmp/frozen",
+            "LD_LIBRARY_PATH_ORIG": "/usr/lib",
+            "QT_PLUGIN_PATH": "/tmp/plugins",
+            "APPIMAGE": "/tmp/PACE.AppImage",
+        }
+    )
+    assert cleaned["PATH"] == "/usr/bin"
+    assert cleaned["LD_LIBRARY_PATH"] == "/usr/lib"
+    assert "LD_LIBRARY_PATH_ORIG" not in cleaned
+    assert "QT_PLUGIN_PATH" not in cleaned
+    assert "APPIMAGE" not in cleaned
+
+
+def test_zenodo_sync_applies_doi_metadata(tmp_path: Path) -> None:
+    script_path = ROOT / ".github" / "scripts" / "sync_zenodo_doi.py"
+    spec = importlib.util.spec_from_file_location("pace_zenodo_sync", script_path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    readme = tmp_path / "README.md"
+    citation = tmp_path / "CITATION.cff"
+    readme.write_text(
+        "\n".join(
+            [
+                "# PACE Controller",
+                "",
+                "[![Version](https://img.shields.io/github/v/release/SebRoLENS/pace-controller)](https://github.com/SebRoLENS/pace-controller/releases/latest)",
+                "[![DOI](https://img.shields.io/badge/DOI-pending-lightgrey)](https://github.com/SebRoLENS/pace-controller/releases/latest)",
+                "",
+                "## Citation",
+                "",
+                "Pending.",
+                "",
+                "## License and independence",
+                "",
+                "MIT",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    citation.write_text(
+        "\n".join(
+            [
+                "cff-version: 1.2.0",
+                'version: "1.0.1"',
+                'repository-code: "https://github.com/SebRoLENS/pace-controller"',
+                'url: "https://github.com/SebRoLENS/pace-controller/releases/tag/v1.0.1"',
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    module.README = readme
+    module.CITATION = citation
+    module.apply_metadata("1.0.1", "10.5281/zenodo.12345678")
+
+    updated_readme = readme.read_text(encoding="utf-8")
+    updated_citation = citation.read_text(encoding="utf-8")
+    assert "https://doi.org/10.5281/zenodo.12345678" in updated_readme
+    assert 'doi: "10.5281/zenodo.12345678"' in updated_citation
+    assert 'url: "https://doi.org/10.5281/zenodo.12345678"' in updated_citation
 
 
 def test_scpi_parsing_and_formatting() -> None:

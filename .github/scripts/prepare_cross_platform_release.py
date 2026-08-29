@@ -21,6 +21,18 @@ CHANGELOG = ROOT / "CHANGELOG.md"
 LEGACY = ROOT / "PACE_Controller.ps1"
 LEGACY_HASH = "aa6ffe5431dfab7d2ea998f9b59e8ac5163b0e3478e84a3c15e2e826fb356b8e"
 SEMVER_RE = re.compile(r"^(\d+)\.(\d+)\.(\d+)$")
+VERSION_BADGE_RE = re.compile(
+    r"^\[!\[(?:Latest release|Version)\]\([^)]+\)\]\([^)]+\)[ \t]*$", re.M
+)
+DOI_BADGE_RE = re.compile(r"^\[!\[DOI\]\([^)]+\)\]\([^)]+\)[ \t]*$", re.M)
+VERSION_BADGE = (
+    "[![Version](https://img.shields.io/github/v/release/SebRoLENS/pace-controller)]"
+    "(https://github.com/SebRoLENS/pace-controller/releases/latest)"
+)
+DOI_PENDING_BADGE = (
+    "[![DOI](https://img.shields.io/badge/DOI-pending-lightgrey)]"
+    "(https://github.com/SebRoLENS/pace-controller/releases/latest)"
+)
 
 
 def version_tuple(version: str) -> tuple[int, int, int]:
@@ -76,6 +88,41 @@ def assert_legacy_unchanged() -> None:
         )
 
 
+def replace_section(text: str, heading: str, next_heading: str, body: str) -> str:
+    pattern = re.compile(
+        rf"(?ms)^{re.escape(heading)}\n.*?(?=^{re.escape(next_heading)}\n)"
+    )
+    if not pattern.search(text):
+        raise SystemExit(f"Could not find README section {heading!r}")
+    return pattern.sub(body.rstrip() + "\n\n", text, count=1)
+
+
+def update_pending_doi_metadata(version: str) -> None:
+    text = ROOT_README.read_text(encoding="utf-8")
+    if not VERSION_BADGE_RE.search(text):
+        raise SystemExit("Could not find README version badge")
+    text = VERSION_BADGE_RE.sub(VERSION_BADGE, text, count=1)
+    if DOI_BADGE_RE.search(text):
+        text = DOI_BADGE_RE.sub(DOI_PENDING_BADGE, text, count=1)
+    else:
+        text = text.replace(VERSION_BADGE, VERSION_BADGE + "\n" + DOI_PENDING_BADGE, 1)
+    citation = f"""## Citation
+
+If PACE Controller contributes to published work, cite the exact version used.
+GitHub also provides a **Cite this repository** entry from [`CITATION.cff`](CITATION.cff).
+
+Version **{version}** will be archived by the Zenodo GitHub integration. The
+version DOI will then be inserted here automatically.
+
+> Romi, S. (2026). *PACE Controller* (Version {version}) [Computer software].
+> GitHub. https://github.com/SebRoLENS/pace-controller/releases/tag/v{version}
+"""
+    ROOT_README.write_text(
+        replace_section(text, "## Citation", "## License and independence", citation),
+        encoding="utf-8",
+    )
+
+
 def update_version(new: str) -> None:
     replace_one(INIT, r'^__version__\s*=\s*"[^"]+"$', f'__version__ = "{new}"', "package version")
     replace_one(PYPROJECT, r'^version\s*=\s*"[^"]+"$', f'version = "{new}"', "project version")
@@ -86,6 +133,9 @@ def update_version(new: str) -> None:
     replace_one(CITATION, r'^version: ".*"$', f'version: "{new}"', "citation version")
     replace_one(CITATION, r'^url: ".*"$', f'url: "https://github.com/SebRoLENS/pace-controller/releases/tag/v{new}"', "citation URL")
     replace_one(CITATION, r'^date-released: .*$', f'date-released: {dt.date.today().isoformat()}', "citation date")
+    cff = re.sub(r"^doi:\s*.*\n", "", CITATION.read_text(encoding="utf-8"), flags=re.M)
+    CITATION.write_text(cff, encoding="utf-8")
+    update_pending_doi_metadata(new)
 
 
 def update_changelog(new: str) -> None:

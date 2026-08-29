@@ -1,6 +1,6 @@
 ---
 title: "PACE Controller - Cross-Platform User and Technical Manual"
-author: "S. Romi"
+author: "Sebastiano Romi - LENS, University of Florence (UNIFI)"
 date: "Version 1.0.1 - 2026"
 geometry: margin=2.2cm
 colorlinks: true
@@ -173,6 +173,11 @@ The software:
 7. begins telemetry polling.
 
 Press **Disconnect** to stop automation, request MEASURE, close the communication channel, and restore temporary network configuration.
+
+The bilingual **Help** menu contains **Report a problem**, which opens the
+public GitHub issue tracker, and **About PACE Controller**, which shows the
+version, author, institutional affiliation, contact email, project link, and
+independence notice.
 
 ## 7. Main display
 
@@ -385,5 +390,12 @@ The complete source and workflows are included in the repository. Binaries remai
 2. Druck classic PACE 5000 support page: <https://druck.com/product/pace-5000/>
 
 PACE Controller is independent software and is not an official Druck product. It is released under the MIT License.
+
+### Author and contact
+
+- Sebastiano Romi
+- European Laboratory for Non-Linear Spectroscopy (LENS)
+- University of Florence (UNIFI)
+- <romi@lens.unifi.it>
 
 Development used AI-assisted programming. Validate the application on a safe, unloaded, low-pressure setup and report unexpected behaviour with the logfile, PACE model, module, firmware version, connection type, and exact reproduction steps.

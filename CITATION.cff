@@ -4,7 +4,9 @@ title: "PACE Controller"
 type: software
 authors:
   - family-names: Romi
-    given-names: S.
+    given-names: Sebastiano
+    affiliation: "European Laboratory for Non-Linear Spectroscopy (LENS), University of Florence (UNIFI)"
+    email: romi@lens.unifi.it
     orcid: "https://orcid.org/0000-0002-9553-7788"
 repository-code: "https://github.com/SebRoLENS/pace-controller"
 url: "https://github.com/SebRoLENS/pace-controller/releases/tag/v1.0.1"

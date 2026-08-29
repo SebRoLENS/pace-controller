@@ -6,15 +6,18 @@ import json
 import math
 import os
 import platform
+from collections.abc import Callable
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QTimer, QUrl
-from PySide6.QtGui import QColor, QDesktopServices, QFont, QPainter, QPen
+from PySide6.QtGui import QAction, QColor, QDesktopServices, QFont, QPainter, QPen
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QApplication,
     QCheckBox,
     QComboBox,
+    QDialog,
+    QDialogButtonBox,
     QFileDialog,
     QFormLayout,
     QFrame,
@@ -40,6 +43,7 @@ from PySide6.QtWidgets import (
 )
 
 from . import __version__
+from .external import open_with_host_application
 from .i18n import Translator
 from .leak import LeakAssessment, LeakMonitor
 from .models import (
@@ -76,6 +80,9 @@ QTableWidget { background: white; alternate-background-color: #f3f6f8; gridline-
 QHeaderView::section { background: #e5ebf0; padding: 7px; border: 1px solid #c3ccd4; font-weight: 700; }
 QTextEdit { background: #17212b; color: #d7e5ef; font-family: "Cascadia Mono", monospace; }
 """
+
+REPOSITORY_URL = "https://github.com/SebRoLENS/pace-controller"
+ISSUES_URL = f"{REPOSITORY_URL}/issues"
 
 
 class LockButton(QToolButton):
@@ -168,6 +175,43 @@ class LeakCard(QFrame):
         self.value.setText(text)
 
 
+class AboutDialog(QDialog):
+    def __init__(
+        self,
+        translator: Translator,
+        open_target: Callable[[str | Path], None],
+        parent: QWidget | None = None,
+    ) -> None:
+        super().__init__(parent)
+        self.setWindowTitle(translator("about"))
+        self.setMinimumWidth(480)
+        layout = QVBoxLayout(self)
+        text = QLabel(
+            f"<h2>PACE Controller {__version__}</h2>"
+            f"<p>{translator('about_tagline')}</p>"
+            f"<h3>{translator('author_acknowledgements')}</h3>"
+            "<p><b>Sebastiano Romi</b><br>"
+            "European Laboratory for Non-Linear Spectroscopy (LENS)<br>"
+            "University of Florence (UNIFI)<br>"
+            '<a href="mailto:romi@lens.unifi.it">romi@lens.unifi.it</a></p>'
+            f"<p>{translator('about_independent')}</p>"
+            f'<p><a href="{REPOSITORY_URL}">{translator("project_updates")}</a></p>'
+        )
+        text.setOpenExternalLinks(False)
+        text.linkActivated.connect(open_target)
+        text.setAlignment(Qt.AlignCenter)
+        text.setWordWrap(True)
+        layout.addWidget(text)
+
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+        report_button = buttons.addButton(
+            translator("report_problem"), QDialogButtonBox.ButtonRole.ActionRole
+        )
+        report_button.clicked.connect(lambda: open_target(ISSUES_URL))
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+
+
 class MainWindow(QMainWindow):
     def __init__(
         self,
@@ -193,6 +237,7 @@ class MainWindow(QMainWindow):
         self.setMinimumSize(1080, 760)
         self.resize(1280, 900)
         self.setStyleSheet(APP_STYLE)
+        self._build_help_menu()
         self._build_ui()
         self._connect_signals()
         self.refresh_serial_ports()
@@ -211,6 +256,23 @@ class MainWindow(QMainWindow):
             )
             QTimer.singleShot(100, self.request_connect)
             QTimer.singleShot(2200, self.capture_screenshot)
+
+    def _build_help_menu(self) -> None:
+        self.help_menu = self.menuBar().addMenu("")
+        self.report_action = QAction(self)
+        self.report_action.triggered.connect(lambda: self._open_external(ISSUES_URL))
+        self.about_action = QAction(self)
+        self.about_action.triggered.connect(self.show_about)
+        self.help_menu.addAction(self.report_action)
+        self.help_menu.addSeparator()
+        self.help_menu.addAction(self.about_action)
+        self._localized.extend(
+            [
+                (self.help_menu, "help"),
+                (self.report_action, "report_problem"),
+                (self.about_action, "about"),
+            ]
+        )
 
     def _build_ui(self) -> None:
         central = QWidget()
@@ -649,7 +711,7 @@ class MainWindow(QMainWindow):
         self.stop_routine_button.clicked.connect(self.service.stop_and_measure)
         self.save_settings_button.clicked.connect(self.save_leak_settings)
         self.open_data_button.clicked.connect(
-            lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(str(data_directory())))
+            lambda: self._open_external(data_directory())
         )
         self.vent_button.clicked.connect(self.start_vent)
 
@@ -660,6 +722,27 @@ class MainWindow(QMainWindow):
         self.service.log_line.connect(self.log_view.append)
         self.service.alarm.connect(self.on_alarm)
         self.service.busy_changed.connect(self.set_busy)
+
+    def _open_external(self, target: str | Path) -> None:
+        value = str(target)
+        try:
+            opened = open_with_host_application(value)
+            if not opened:
+                url = QUrl.fromLocalFile(value) if isinstance(target, Path) else QUrl(value)
+                opened = QDesktopServices.openUrl(url)
+            if opened:
+                return
+        except OSError as exc:
+            if hasattr(self, "log_view"):
+                self.log_view.append(f"External opener failed: {exc}")
+        QMessageBox.warning(
+            self,
+            self.t("open_link_title"),
+            self.t("open_link_error", target=value),
+        )
+
+    def show_about(self) -> None:
+        AboutDialog(self.t, self._open_external, self).exec()
 
     def _load_settings_into_ui(self) -> None:
         config = self.settings.connection

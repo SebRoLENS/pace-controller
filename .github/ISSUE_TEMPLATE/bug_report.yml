@@ -1,0 +1,42 @@
+name: Bug report
+description: Report a reproducible PACE Controller problem
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: textarea
+    attributes:
+      label: What happened?
+      description: Describe the exact actions, connection type, and observed result.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Exact error message and log
+      description: Paste the error and the relevant diagnostic-log lines. Remove sensitive network information if necessary.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: PACE Controller version and operating system
+      placeholder: "For example: 1.0.1, Windows 11"
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Instrument and connection
+      placeholder: "For example: PACE 5000, Ethernet 192.168.10.2:5025"
+    validations:
+      required: true
+  - type: checkboxes
+    attributes:
+      label: Safety and privacy
+      options:
+        - label: I reproduced the issue on a safe, unloaded, low-pressure setup.
+          required: true
+        - label: I reviewed every attachment for confidential laboratory or network data.
+          required: true
