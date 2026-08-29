@@ -9,7 +9,8 @@ authors:
     email: romi@lens.unifi.it
     orcid: "https://orcid.org/0000-0002-9553-7788"
 repository-code: "https://github.com/SebRoLENS/pace-controller"
-url: "https://github.com/SebRoLENS/pace-controller/releases/tag/v1.0.3"
+doi: "10.5281/zenodo.22162885"
+url: "https://doi.org/10.5281/zenodo.22162885"
 version: "1.0.3"
 date-released: 2026-08-29
 license: MIT

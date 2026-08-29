@@ -1,7 +1,7 @@
 # PACE Controller
 
 [![Version](https://img.shields.io/github/v/release/SebRoLENS/pace-controller)](https://github.com/SebRoLENS/pace-controller/releases/latest)
-[![DOI](https://img.shields.io/badge/DOI-pending-lightgrey)](https://github.com/SebRoLENS/pace-controller/releases/latest)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22162885.svg)](https://doi.org/10.5281/zenodo.22162885)
 [![Windows](https://img.shields.io/badge/Windows-10%2F11-0078D4?logo=windows)](https://github.com/SebRoLENS/pace-controller/releases/latest)
 [![Linux](https://img.shields.io/badge/Linux-x86__64-FCC624?logo=linux&logoColor=black)](https://github.com/SebRoLENS/pace-controller/releases/latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -110,11 +110,10 @@ python -m pytest
 If PACE Controller contributes to published work, cite the exact version used.
 GitHub also provides a **Cite this repository** entry from [`CITATION.cff`](CITATION.cff).
 
-Version **1.0.3** will be archived by the Zenodo GitHub integration. The
-version DOI will then be inserted here automatically.
+> Romi, S. (2026). *PACE Controller* (Version 1.0.3)
+> [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.22162885
 
-> Romi, S. (2026). *PACE Controller* (Version 1.0.3) [Computer software].
-> GitHub. https://github.com/SebRoLENS/pace-controller/releases/tag/v1.0.3
+DOI: [**10.5281/zenodo.22162885**](https://doi.org/10.5281/zenodo.22162885)
 
 ## License and independence
 
