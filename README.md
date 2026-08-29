@@ -1,14 +1,14 @@
 # PACE Controller
 
 [![Version](https://img.shields.io/github/v/release/SebRoLENS/pace-controller)](https://github.com/SebRoLENS/pace-controller/releases/latest)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22162643.svg)](https://doi.org/10.5281/zenodo.22162643)
+[![DOI](https://img.shields.io/badge/DOI-pending-lightgrey)](https://github.com/SebRoLENS/pace-controller/releases/latest)
 [![Windows](https://img.shields.io/badge/Windows-10%2F11-0078D4?logo=windows)](https://github.com/SebRoLENS/pace-controller/releases/latest)
 [![Linux](https://img.shields.io/badge/Linux-x86__64-FCC624?logo=linux&logoColor=black)](https://github.com/SebRoLENS/pace-controller/releases/latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 Cross-platform graphical controller for classic Druck **PACE 5000** and **PACE 6000** instruments using Ethernet or RS-232.
 
-Current public version: **1.0.2**
+Current public version: **1.0.3**
 
 > [!CAUTION]
 > This application sends real pressure-control and vent commands. It is not a certified safety system and does not replace pressure-relief devices, hardware interlocks, instrument limits, laboratory procedures, or direct operator supervision.
@@ -110,10 +110,11 @@ python -m pytest
 If PACE Controller contributes to published work, cite the exact version used.
 GitHub also provides a **Cite this repository** entry from [`CITATION.cff`](CITATION.cff).
 
-> Romi, S. (2026). *PACE Controller* (Version 1.0.2)
-> [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.22162643
+Version **1.0.3** will be archived by the Zenodo GitHub integration. The
+version DOI will then be inserted here automatically.
 
-DOI: [**10.5281/zenodo.22162643**](https://doi.org/10.5281/zenodo.22162643)
+> Romi, S. (2026). *PACE Controller* (Version 1.0.3) [Computer software].
+> GitHub. https://github.com/SebRoLENS/pace-controller/releases/tag/v1.0.3
 
 ## License and independence
 

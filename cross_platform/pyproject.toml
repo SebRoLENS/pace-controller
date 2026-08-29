@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pace-pressure-controller"
-version = "1.0.2"
+version = "1.0.3"
 description = "Cross-platform Ethernet and RS-232 controller for classic Druck PACE 5000/6000"
 readme = "README.md"
 requires-python = ">=3.10"
