@@ -2,7 +2,7 @@
 
 Cross-platform graphical controller for classic Druck **PACE 5000** and **PACE 6000** instruments connected through Ethernet or RS-232.
 
-Current version: **1.0.0**
+Current version: **1.0.1**
 
 > [!CAUTION]
 > This application sends real pressure-control and vent commands. It is not a certified safety system and does not replace pressure-relief devices, hardware interlocks, instrument limits, laboratory procedures, or direct operator supervision.
@@ -79,6 +79,10 @@ Configure the PACE with:
 | Gateway/DNS | Empty or `0.0.0.0` |
 | Access control | Open |
 | SCPI socket | TCP `5025` |
+
+Ethernet commands are sent with CRLF line endings. The final LF is the SCPI
+message terminator specified by Druck K0472 and the complete sequence matches
+the validated legacy Windows controller.
 
 The program first tries the configured address. If requested, it then adds `192.168.10.1/24` only to a single safe dedicated Ethernet adapter that has no gateway and no unrelated IPv4 network. No adapter is changed if selection is ambiguous. The temporary address is removed at shutdown.
 
