@@ -1,6 +1,7 @@
 # PACE Controller
 
 [![Version](https://img.shields.io/github/v/release/SebRoLENS/pace-controller)](https://github.com/SebRoLENS/pace-controller/releases/latest)
+[![DOI](https://img.shields.io/badge/DOI-pending-lightgrey)](https://github.com/SebRoLENS/pace-controller/releases/latest)
 [![Windows](https://img.shields.io/badge/Windows-10%2F11-0078D4?logo=windows)](https://github.com/SebRoLENS/pace-controller/releases/latest)
 [![Linux](https://img.shields.io/badge/Linux-x86__64-FCC624?logo=linux&logoColor=black)](https://github.com/SebRoLENS/pace-controller/releases/latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -52,6 +53,10 @@ No NI-VISA, Druck USB driver, Python, LabVIEW, or Internet connection is require
 - Automatic MEASURE attempt on required-telemetry loss during CONTROL.
 - Full-precision CSV telemetry and diagnostic logs.
 - Hardware-free simulator and automated screenshot tests.
+- Bilingual Help menu with institutional acknowledgements and direct GitHub
+  issue reporting.
+- Automatic Zenodo DOI discovery and citation-metadata synchronisation after
+  release archival.
 
 ## PACE configuration
 
@@ -99,6 +104,17 @@ python -m pip install -r requirements-dev.txt
 python -m pace_controller --simulate
 python -m pytest
 ```
+
+## Citation
+
+If PACE Controller contributes to published work, cite the exact version used.
+GitHub also provides a **Cite this repository** entry from [`CITATION.cff`](CITATION.cff).
+
+Version **1.0.1** will be archived by the Zenodo GitHub integration. The
+version DOI will then be inserted here automatically.
+
+> Romi, S. (2026). *PACE Controller* (Version 1.0.1) [Computer software].
+> GitHub. https://github.com/SebRoLENS/pace-controller/releases/tag/v1.0.1
 
 ## License and independence
 

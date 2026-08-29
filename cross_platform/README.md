@@ -51,6 +51,9 @@ Ethernet and RS-232 use the same SCPI control engine and the same safety checks.
 - Permanent sample-side and inlet-side leak indicators with editable thresholds.
 - CSV telemetry and diagnostic logs at full received precision.
 - Offline simulator for hardware-free validation.
+- Bilingual Help menu with author/affiliation acknowledgements and a direct
+  link to the public GitHub issue tracker.
+- Automatic Zenodo DOI synchronisation after each archived GitHub release.
 
 ## Software protections
 

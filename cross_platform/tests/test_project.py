@@ -17,6 +17,7 @@ def test_release_and_documentation_files_exist() -> None:
         "src/pace_controller/main.py",
         "src/pace_controller/service.py",
         "src/pace_controller/transports.py",
+        "src/pace_controller/external.py",
         "pace_controller_launcher.py",
         "scripts/build_windows.ps1",
         "scripts/build_linux.sh",
@@ -36,9 +37,29 @@ def test_required_cross_platform_features_are_present() -> None:
     assert "source_margin_rearm_bar: float = 2.2" in service
     assert 'f"{value:.3f} {unit}"' in ui
     assert "LockButton" in ui
+    assert "ISSUES_URL" in ui
+    assert "AboutDialog" in ui
+    assert "romi@lens.unifi.it" in ui
 
 
 def test_frozen_legacy_hash_is_declared() -> None:
     assert (ROOT / "LEGACY_SHA256.txt").read_text(encoding="utf-8").strip().startswith(
         "aa6ffe5431dfab7d2ea998f9b59e8ac5163b0e3478e84a3c15e2e826fb356b8e"
     )
+
+
+def test_repository_integrations_are_present() -> None:
+    repository = ROOT.parent
+    expected = [
+        ".github/ISSUE_TEMPLATE/bug_report.yml",
+        ".github/scripts/sync_zenodo_doi.py",
+        ".github/workflows/sync-zenodo-doi.yml",
+    ]
+    for relative in expected:
+        assert (repository / relative).is_file(), relative
+
+    release = (repository / ".github/workflows/cross-platform-release.yml").read_text(
+        encoding="utf-8"
+    )
+    assert "Dispatch Zenodo DOI sync" in release
+    assert "actions: write" in release
