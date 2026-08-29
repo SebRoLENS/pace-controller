@@ -2,7 +2,7 @@
 
 Cross-platform graphical controller for classic Druck **PACE 5000** and **PACE 6000** instruments connected through Ethernet or RS-232.
 
-Current version: **1.0.1**
+Current version: **1.0.2**
 
 > [!CAUTION]
 > This application sends real pressure-control and vent commands. It is not a certified safety system and does not replace pressure-relief devices, hardware interlocks, instrument limits, laboratory procedures, or direct operator supervision.

@@ -2,6 +2,10 @@
 
 All notable changes are documented here. The project follows semantic versioning.
 
+## [1.0.2] - 2026-08-29
+
+- Automated validated cross-platform maintenance release.
+
 ## [1.0.1] - 2026-08-29
 
 - Fixed the Ethernet connection regression introduced in v1.0.0: TCP/SCPI

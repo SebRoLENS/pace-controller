@@ -1,7 +1,7 @@
 ---
 title: "PACE Controller - Cross-Platform User and Technical Manual"
 author: "Sebastiano Romi - LENS, University of Florence (UNIFI)"
-date: "Version 1.0.1 - 2026"
+date: "Version 1.0.2 - 2026"
 geometry: margin=2.2cm
 colorlinks: true
 lang: en
@@ -9,7 +9,7 @@ lang: en
 
 # PACE Controller
 
-User and technical manual for version **1.0.1**.
+User and technical manual for version **1.0.2**.
 
 ## 1. Scope
 

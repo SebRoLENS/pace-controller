@@ -8,7 +8,7 @@
 
 Cross-platform graphical controller for classic Druck **PACE 5000** and **PACE 6000** instruments using Ethernet or RS-232.
 
-Current public version: **1.0.1**
+Current public version: **1.0.2**
 
 > [!CAUTION]
 > This application sends real pressure-control and vent commands. It is not a certified safety system and does not replace pressure-relief devices, hardware interlocks, instrument limits, laboratory procedures, or direct operator supervision.
@@ -110,11 +110,11 @@ python -m pytest
 If PACE Controller contributes to published work, cite the exact version used.
 GitHub also provides a **Cite this repository** entry from [`CITATION.cff`](CITATION.cff).
 
-Version **1.0.1** will be archived by the Zenodo GitHub integration. The
+Version **1.0.2** will be archived by the Zenodo GitHub integration. The
 version DOI will then be inserted here automatically.
 
-> Romi, S. (2026). *PACE Controller* (Version 1.0.1) [Computer software].
-> GitHub. https://github.com/SebRoLENS/pace-controller/releases/tag/v1.0.1
+> Romi, S. (2026). *PACE Controller* (Version 1.0.2) [Computer software].
+> GitHub. https://github.com/SebRoLENS/pace-controller/releases/tag/v1.0.2
 
 ## License and independence
 
