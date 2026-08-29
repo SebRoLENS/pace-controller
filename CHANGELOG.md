@@ -2,6 +2,15 @@
 
 All notable changes are documented here. The project follows semantic versioning.
 
+## [1.0.1] - 2026-08-29
+
+- Fixed the Ethernet connection regression introduced in v1.0.0: TCP/SCPI
+  commands now end in CRLF, preserving the validated v0.3.1 behaviour and the
+  LF terminator required by the Druck K0472 manual.
+- Ignored an empty line-feed fragment when a CRLF instrument reply is split
+  across TCP packets.
+- Added a loopback TCP regression test for the complete connection handshake.
+
 ## [1.0.0] - 2026-08-28
 
 - Added a separate Python/PySide6 implementation for Windows and Linux.

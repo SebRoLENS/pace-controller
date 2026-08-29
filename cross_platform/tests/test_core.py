@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import hashlib
+import socket
+import threading
 import time
 from pathlib import Path
 
@@ -11,7 +13,7 @@ from pace_controller.i18n import STRINGS
 from pace_controller.leak import LeakMonitor
 from pace_controller.models import LeakThresholds
 from pace_controller.service import scpi_float, scpi_number, scpi_numbers, scpi_payload
-from pace_controller.transports import SimulatorTransport
+from pace_controller.transports import SimulatorTransport, TcpTransport
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -59,6 +61,57 @@ def test_simulator_accepts_same_scpi_as_real_transport() -> None:
     device.write(":OUTP1:STAT OFF")
     assert scpi_number(device.query(":OUTP1:STAT?")) == 0
     device.close()
+
+
+def test_tcp_transport_matches_validated_pace_line_endings() -> None:
+    listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    listener.bind(("127.0.0.1", 0))
+    listener.listen(1)
+    host, port = listener.getsockname()
+    received: list[bytes] = []
+    server_errors: list[BaseException] = []
+
+    def receive_command(connection: socket.socket) -> bytes:
+        payload = bytearray()
+        while not payload.endswith(b"\n"):
+            chunk = connection.recv(1024)
+            if not chunk:
+                break
+            payload.extend(chunk)
+        return bytes(payload)
+
+    def serve() -> None:
+        try:
+            connection, _ = listener.accept()
+            with connection:
+                connection.settimeout(2.0)
+                received.append(receive_command(connection))
+                connection.sendall(b"DRUCK,PACE5000,TEST,1.0\r")
+                time.sleep(0.05)
+                connection.sendall(b"\n")
+                received.append(receive_command(connection))
+                time.sleep(0.05)
+                connection.sendall(b"BAR\r\n")
+        except BaseException as exc:  # surfaced in the test thread
+            server_errors.append(exc)
+        finally:
+            listener.close()
+
+    server = threading.Thread(target=serve, daemon=True)
+    server.start()
+    transport = TcpTransport(host, port, timeout=1.0)
+    try:
+        transport.connect()
+        assert transport.query("*IDN?") == "DRUCK,PACE5000,TEST,1.0"
+        assert transport.query(":UNIT1:PRES?") == "BAR"
+    finally:
+        transport.close()
+        server.join(2.0)
+
+    assert not server.is_alive()
+    assert not server_errors
+    assert received == [b"*IDN?\r\n", b":UNIT1:PRES?\r\n"]
 
 
 @pytest.mark.parametrize(

@@ -13,6 +13,9 @@ from typing import Iterable
 from .models import ConnectionConfig, ConnectionKind
 
 
+PACE_TCP_COMMAND_TERMINATOR = b"\r\n"
+
+
 class TransportError(RuntimeError):
     pass
 
@@ -71,7 +74,13 @@ class TcpTransport(ScpiTransport):
         if self._socket is None:
             raise TransportError("TCP transport is not connected")
         try:
-            self._socket.sendall(command.rstrip("\r\n").encode("ascii") + b"\r")
+            # K0472 requires LF (ASCII 10) to terminate SCPI commands.  CRLF
+            # also preserves the byte sequence used by the validated legacy
+            # Windows controller.
+            self._socket.sendall(
+                command.rstrip("\r\n").encode("ascii")
+                + PACE_TCP_COMMAND_TERMINATOR
+            )
         except OSError as exc:
             raise TransportError(f"TCP write failed: {exc}") from exc
 
@@ -87,6 +96,11 @@ class TcpTransport(ScpiTransport):
                     del self._buffer[: position + 1]
                     while self._buffer[:1] in (b"\r", b"\n"):
                         del self._buffer[:1]
+                    if not raw:
+                        # A CRLF reply can be split across TCP packets.  If
+                        # CR completed the previous response, ignore the
+                        # delayed LF instead of returning an empty response.
+                        continue
                     return raw.decode("ascii", errors="replace").strip()
             if time.monotonic() >= deadline:
                 raise TransportError("Timed out waiting for the PACE response")
@@ -338,4 +352,3 @@ def create_transport(config: ConnectionConfig) -> ScpiTransport:
             timeout=config.timeout,
         )
     return SimulatorTransport()
-

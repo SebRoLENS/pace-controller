@@ -1,7 +1,7 @@
 ---
 title: "PACE Controller - Cross-Platform User and Technical Manual"
 author: "S. Romi"
-date: "Version 1.0.0 - 2026"
+date: "Version 1.0.1 - 2026"
 geometry: margin=2.2cm
 colorlinks: true
 lang: en
@@ -9,7 +9,7 @@ lang: en
 
 # PACE Controller
 
-User and technical manual for version **1.0.0**.
+User and technical manual for version **1.0.1**.
 
 ## 1. Scope
 
@@ -65,6 +65,10 @@ Configure the PACE Ethernet parameters as follows:
 | DNS | Empty or `0.0.0.0` |
 | Access control | Open |
 | SCPI port | TCP `5025` |
+
+The Ethernet transport sends every command with a CRLF line ending. Its final
+LF byte (ASCII 10) is the SCPI message terminator required by K0472, while the
+complete sequence preserves the validated legacy Windows implementation.
 
 Connect the computer and PACE directly with an Ethernet cable. Modern interfaces normally support automatic crossover.
 
