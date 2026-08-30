@@ -1,10 +1,16 @@
-# PACE Controller
+<p align="center">
+  <img src="cross_platform/assets/pace-controller.svg" width="112" alt="PACE Controller icon">
+</p>
 
-[![Version](https://img.shields.io/github/v/release/SebRoLENS/pace-controller)](https://github.com/SebRoLENS/pace-controller/releases/latest)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22162885.svg)](https://doi.org/10.5281/zenodo.22162885)
-[![Windows](https://img.shields.io/badge/Windows-10%2F11-0078D4?logo=windows)](https://github.com/SebRoLENS/pace-controller/releases/latest)
-[![Linux](https://img.shields.io/badge/Linux-x86__64-FCC624?logo=linux&logoColor=black)](https://github.com/SebRoLENS/pace-controller/releases/latest)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+<h1 align="center">PACE Controller</h1>
+
+<p align="center">
+  <a href="https://github.com/SebRoLENS/pace-controller/releases/latest"><img src="https://img.shields.io/github/v/release/SebRoLENS/pace-controller" alt="Version"></a>
+  <a href="https://doi.org/10.5281/zenodo.22162885"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.22162885.svg" alt="DOI"></a>
+  <a href="https://github.com/SebRoLENS/pace-controller/releases/latest"><img src="https://img.shields.io/badge/Windows-10%2F11-0078D4?logo=windows" alt="Windows"></a>
+  <a href="https://github.com/SebRoLENS/pace-controller/releases/latest"><img src="https://img.shields.io/badge/Linux-x86__64-FCC624?logo=linux&logoColor=black" alt="Linux"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="MIT License"></a>
+</p>
 
 Cross-platform graphical controller for classic Druck **PACE 5000** and **PACE 6000** instruments using Ethernet or RS-232.
 
