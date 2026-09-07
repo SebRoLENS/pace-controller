@@ -20,12 +20,16 @@ CITATION = ROOT / "CITATION.cff"
 
 VERSION_RE = re.compile(r'^__version__\s*=\s*"(\d+\.\d+\.\d+)"', re.M)
 VERSION_BADGE_RE = re.compile(
-    r"^\[!\[(?:Latest release|Version)\]\([^)]+\)\]\([^)]+\)[ \t]*$", re.M
+    r"^(?:\[!\[(?:Latest release|Version)\]\([^)]+\)\]\([^)]+\)|[ \t]*<a [^>]*><img [^>]*github/v/release[^>]*></a>)[ \t]*$",
+    re.M,
 )
-DOI_BADGE_RE = re.compile(r"^\[!\[DOI\]\([^)]+\)\]\([^)]+\)[ \t]*$", re.M)
+DOI_BADGE_RE = re.compile(
+    r"^(?:\[!\[DOI\]\([^)]+\)\]\([^)]+\)|[ \t]*<a [^>]*><img [^>]*(?:zenodo|DOI)[^>]*></a>)[ \t]*$",
+    re.M | re.I,
+)
 VERSION_BADGE = (
-    "[![Version](https://img.shields.io/github/v/release/SebRoLENS/pace-controller)]"
-    "(https://github.com/SebRoLENS/pace-controller/releases/latest)"
+    '  <a href="https://github.com/SebRoLENS/pace-controller/releases/latest"><img '
+    'src="https://img.shields.io/github/v/release/SebRoLENS/pace-controller" alt="Version"></a>'
 )
 VALID_TITLES = {
     "pace controller",
@@ -118,7 +122,10 @@ def replace_section(text: str, heading: str, next_heading: str, body: str) -> st
 
 def apply_metadata(version: str, doi: str) -> None:
     doi_url = f"https://doi.org/{doi}"
-    doi_badge = f"[![DOI](https://zenodo.org/badge/DOI/{doi}.svg)]({doi_url})"
+    doi_badge = (
+        f'  <a href="{doi_url}"><img '
+        f'src="https://zenodo.org/badge/DOI/{doi}.svg" alt="DOI"></a>'
+    )
 
     readme = README.read_text(encoding="utf-8")
     if not VERSION_BADGE_RE.search(readme):

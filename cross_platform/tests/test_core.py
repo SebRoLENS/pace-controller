@@ -15,7 +15,7 @@ from pace_controller import __version__
 from pace_controller import network
 from pace_controller.external import host_environment
 from pace_controller.i18n import STRINGS
-from pace_controller.leak import LeakMonitor
+from pace_controller.leak import LeakMonitor, control_autonomy_hours
 from pace_controller.models import LeakThresholds
 from pace_controller.service import scpi_float, scpi_number, scpi_numbers, scpi_payload
 from pace_controller.transports import SimulatorTransport, TcpTransport
@@ -286,8 +286,8 @@ def test_windows_auto_network_waits_adds_route_and_restores(
     [
         (600.0, 0.001, "no_leak"),
         (300.0, 0.004, "slight_leak"),
-        (60.0, 0.003, "pressure_leak"),
-        (30.0, 0.004, "significant_leak"),
+        (180.0, 0.009, "pressure_leak"),
+        (180.0, 0.024, "significant_leak"),
     ],
 )
 def test_leak_classification(elapsed: float, drop: float, expected: str) -> None:
@@ -302,3 +302,18 @@ def test_leak_monitor_pauses_during_control() -> None:
     monitor.add(0.0, 10.0, True)
     assert monitor.add(1.0, 10.0, False).level == "paused_control"
     assert not monitor.samples
+
+
+def test_leak_rate_is_hidden_until_three_minutes_are_averaged() -> None:
+    monitor = LeakMonitor(LeakThresholds())
+    monitor.add(0.0, 50.0, True)
+    early = monitor.add(179.0, 49.0, True)
+    ready = monitor.add(180.0, 49.0, True)
+    assert early.level == "assessing"
+    assert early.observation_minutes == 0.0
+    assert ready.observation_minutes == pytest.approx(3.0)
+    assert ready.rate_bar_min > 0
+
+
+def test_control_autonomy_uses_source_to_sample_pressure_headroom() -> None:
+    assert control_autonomy_hours(50.0, 40.0, 1.0 / 60.0) == pytest.approx(10.0)

@@ -6,7 +6,7 @@
 
 <p align="center">
   <a href="https://github.com/SebRoLENS/pace-controller/releases/latest"><img src="https://img.shields.io/github/v/release/SebRoLENS/pace-controller" alt="Version"></a>
-  <a href="https://doi.org/10.5281/zenodo.22162885"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.22162885.svg" alt="DOI"></a>
+  <a href="https://github.com/SebRoLENS/pace-controller/releases/latest"><img src="https://img.shields.io/badge/DOI-pending-lightgrey" alt="DOI"></a>
   <a href="https://github.com/SebRoLENS/pace-controller/releases/latest"><img src="https://img.shields.io/badge/Windows-10%2F11-0078D4?logo=windows" alt="Windows"></a>
   <a href="https://github.com/SebRoLENS/pace-controller/releases/latest"><img src="https://img.shields.io/badge/Linux-x86__64-FCC624?logo=linux&logoColor=black" alt="Linux"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="MIT License"></a>
@@ -14,7 +14,7 @@
 
 Cross-platform graphical controller for classic Druck **PACE 5000** and **PACE 6000** instruments using Ethernet or RS-232.
 
-Current public version: **1.0.3**
+Current public version: **1.1.0**
 
 > [!CAUTION]
 > This application sends real pressure-control and vent commands. It is not a certified safety system and does not replace pressure-relief devices, hardware interlocks, instrument limits, laboratory procedures, or direct operator supervision.
@@ -53,7 +53,7 @@ No NI-VISA, Druck USB driver, Python, LabVIEW, or Internet connection is require
 - Nine telemetry cards visible together on two rows, with three-decimal display.
 - Manual targets, selectable slew, CONTROL/MEASURE behaviour, and protected advanced parameters.
 - Indenting cycle and editable multi-step JSON routines.
-- Permanent sample-side and inlet-side loss indicators with configurable thresholds.
+- Stable sample-side and cylinder-side loss indicators based on at least three minutes of data, with rates in bar/h and estimated CONTROL autonomy.
 - Source-margin interlock: CONTROL stops below 2.0 bar margin and rearms at 2.2 bar.
 - Confirmation for target increases of at least 10 bar and slew above 0.5 bar/s.
 - Automatic MEASURE attempt on required-telemetry loss during CONTROL.
@@ -116,10 +116,11 @@ python -m pytest
 If PACE Controller contributes to published work, cite the exact version used.
 GitHub also provides a **Cite this repository** entry from [`CITATION.cff`](CITATION.cff).
 
-> Romi, S. (2026). *PACE Controller* (Version 1.0.3)
-> [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.22162885
+Version **1.1.0** will be archived by the Zenodo GitHub integration. The
+version DOI will then be inserted here automatically.
 
-DOI: [**10.5281/zenodo.22162885**](https://doi.org/10.5281/zenodo.22162885)
+> Romi, S. (2026). *PACE Controller* (Version 1.1.0) [Computer software].
+> GitHub. https://github.com/SebRoLENS/pace-controller/releases/tag/v1.1.0
 
 ## License and independence
 

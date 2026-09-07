@@ -22,16 +22,20 @@ LEGACY = ROOT / "PACE_Controller.ps1"
 LEGACY_HASH = "aa6ffe5431dfab7d2ea998f9b59e8ac5163b0e3478e84a3c15e2e826fb356b8e"
 SEMVER_RE = re.compile(r"^(\d+)\.(\d+)\.(\d+)$")
 VERSION_BADGE_RE = re.compile(
-    r"^\[!\[(?:Latest release|Version)\]\([^)]+\)\]\([^)]+\)[ \t]*$", re.M
+    r"^(?:\[!\[(?:Latest release|Version)\]\([^)]+\)\]\([^)]+\)|[ \t]*<a [^>]*><img [^>]*github/v/release[^>]*></a>)[ \t]*$",
+    re.M,
 )
-DOI_BADGE_RE = re.compile(r"^\[!\[DOI\]\([^)]+\)\]\([^)]+\)[ \t]*$", re.M)
+DOI_BADGE_RE = re.compile(
+    r"^(?:\[!\[DOI\]\([^)]+\)\]\([^)]+\)|[ \t]*<a [^>]*><img [^>]*(?:zenodo|DOI)[^>]*></a>)[ \t]*$",
+    re.M | re.I,
+)
 VERSION_BADGE = (
-    "[![Version](https://img.shields.io/github/v/release/SebRoLENS/pace-controller)]"
-    "(https://github.com/SebRoLENS/pace-controller/releases/latest)"
+    '  <a href="https://github.com/SebRoLENS/pace-controller/releases/latest"><img '
+    'src="https://img.shields.io/github/v/release/SebRoLENS/pace-controller" alt="Version"></a>'
 )
 DOI_PENDING_BADGE = (
-    "[![DOI](https://img.shields.io/badge/DOI-pending-lightgrey)]"
-    "(https://github.com/SebRoLENS/pace-controller/releases/latest)"
+    '  <a href="https://github.com/SebRoLENS/pace-controller/releases/latest"><img '
+    'src="https://img.shields.io/badge/DOI-pending-lightgrey" alt="DOI"></a>'
 )
 
 

@@ -2,7 +2,7 @@
 
 Cross-platform graphical controller for classic Druck **PACE 5000** and **PACE 6000** instruments connected through Ethernet or RS-232.
 
-Current version: **1.0.3**
+Current version: **1.1.0**
 
 > [!CAUTION]
 > This application sends real pressure-control and vent commands. It is not a certified safety system and does not replace pressure-relief devices, hardware interlocks, instrument limits, laboratory procedures, or direct operator supervision.
@@ -48,7 +48,7 @@ Ethernet and RS-232 use the same SCPI control engine and the same safety checks.
 - **Indenting**: target, 120-second hold, return to zero, final MEASURE.
 - Editable JSON pressure routines with target, slew, dwell, and notes.
 - Protected pressurization parameters behind a padlock and danger confirmation.
-- Permanent sample-side and inlet-side leak indicators with editable thresholds.
+- Stable sample-side and cylinder-side loss indicators based on at least three minutes of data, with rates in bar/h and estimated CONTROL autonomy.
 - CSV telemetry and diagnostic logs at full received precision.
 - Offline simulator for hardware-free validation.
 - Bilingual Help menu with author/affiliation acknowledgements and a direct

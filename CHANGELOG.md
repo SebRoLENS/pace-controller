@@ -2,6 +2,12 @@
 
 All notable changes are documented here. The project follows semantic versioning.
 
+## [1.1.0] - 2026-09-07
+
+- Stabilized sample-side and cylinder-side pressure-loss estimates by requiring at least three minutes of regression history before displaying a rate.
+- Displayed pressure-loss rates in bar/h.
+- Added cylinder-pressure monitoring during steady CONTROL and estimated remaining CONTROL autonomy from source pressure, sample pressure, and measured cylinder loss rate.
+
 ## [1.0.3] - 2026-08-29
 
 - Automated validated cross-platform maintenance release.

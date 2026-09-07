@@ -45,7 +45,7 @@ from PySide6.QtWidgets import (
 from . import __version__
 from .external import open_with_host_application
 from .i18n import Translator
-from .leak import LeakAssessment, LeakMonitor
+from .leak import LeakAssessment, LeakMonitor, control_autonomy_hours
 from .models import (
     AppSettings,
     ConnectionConfig,
@@ -83,6 +83,11 @@ QTextEdit { background: #17212b; color: #d7e5ef; font-family: "Cascadia Mono", m
 
 REPOSITORY_URL = "https://github.com/SebRoLENS/pace-controller"
 ISSUES_URL = f"{REPOSITORY_URL}/issues"
+
+
+def assessment_rate_minimum_minutes() -> float:
+    """Minimum regression span used by every UI leak monitor."""
+    return 3.0
 
 
 class LockButton(QToolButton):
@@ -156,7 +161,7 @@ class LeakCard(QFrame):
         self.title.setStyleSheet("font-size: 9pt;")
         self.value = QLabel("ASSESSING")
         self.value.setAlignment(Qt.AlignCenter)
-        self.value.setMinimumHeight(56)
+        self.value.setMinimumHeight(76)
         font = QFont()
         font.setPointSize(12)
         font.setBold(True)
@@ -229,8 +234,12 @@ class MainWindow(QMainWindow):
         self.parameters_unlocked = False
         self.current_telemetry = Telemetry()
         self.capabilities = DeviceCapabilities()
-        self.sample_monitor = LeakMonitor(settings.leak_thresholds)
-        self.inlet_monitor = LeakMonitor(settings.leak_thresholds)
+        minimum_minutes = assessment_rate_minimum_minutes()
+        self.sample_monitor = LeakMonitor(settings.leak_thresholds, minimum_minutes)
+        self.inlet_monitor = LeakMonitor(settings.leak_thresholds, minimum_minutes)
+        self.sample_assessment = LeakAssessment("assessing")
+        self.inlet_assessment = LeakAssessment("assessing")
+        self.source_monitoring_state: str | None = None
         self._localized: list[tuple[object, str]] = []
 
         self.setObjectName("mainWindow")
@@ -877,6 +886,12 @@ class MainWindow(QMainWindow):
         self.transport_stack.setEnabled(not connected)
         self.module_combo.setEnabled(not connected)
         if not connected:
+            self.sample_monitor.reset()
+            self.inlet_monitor.reset()
+            self.sample_assessment = LeakAssessment("assessing")
+            self.inlet_assessment = LeakAssessment("assessing")
+            self.source_monitoring_state = None
+            self._refresh_leak_texts()
             self.parameters_unlocked = False
             self._set_parameter_lock_ui()
 
@@ -1075,14 +1090,31 @@ class MainWindow(QMainWindow):
             and telemetry.source_margin_bar < self.settings.minimum_source_margin_bar
             else "color: #078419;"
         )
-        sample = self.sample_monitor.add(
+        self.sample_assessment = self.sample_monitor.add(
             telemetry.timestamp, telemetry.current_pressure_bar, not telemetry.control and not self.busy
         )
-        inlet = self.inlet_monitor.add(
-            telemetry.timestamp, telemetry.positive_source_bar, not telemetry.control and not self.busy
+        # Source consumption is meaningful in steady CONTROL and a static source
+        # leak is meaningful in MEASURE. Reset while a CONTROL target is moving.
+        source_state = (
+            "control"
+            if telemetry.control and telemetry.in_limits
+            else "moving"
+            if telemetry.control
+            else "measure"
         )
-        self._apply_leak(self.sample_leak, sample)
-        self._apply_leak(self.inlet_leak, inlet)
+        if source_state != self.source_monitoring_state:
+            self.inlet_monitor.reset()
+            self.source_monitoring_state = source_state
+        source_stable = source_state != "moving"
+        self.inlet_assessment = self.inlet_monitor.add(
+            telemetry.timestamp, telemetry.positive_source_bar, source_stable
+        )
+        self._apply_leak(self.sample_leak, self.sample_assessment)
+        self._apply_leak(
+            self.inlet_leak,
+            self.inlet_assessment,
+            self._control_autonomy_hours(self.inlet_assessment, telemetry),
+        )
 
     def on_automation(self, event: object) -> None:
         data = dict(event) if isinstance(event, dict) else {"key": "automation_idle"}
@@ -1176,12 +1208,42 @@ class MainWindow(QMainWindow):
             return
         QApplication.exit(0)
 
-    def _apply_leak(self, card: LeakCard, assessment: LeakAssessment) -> None:
-        card.set_level(assessment.level, self.t(assessment.level))
+    def _apply_leak(
+        self,
+        card: LeakCard,
+        assessment: LeakAssessment,
+        autonomy_hours: float | None = None,
+    ) -> None:
+        lines = [self.t(assessment.level)]
+        if assessment.observation_minutes >= assessment_rate_minimum_minutes():
+            lines.append(self.t("loss_rate_hour", rate=assessment.rate_bar_min * 60.0))
+            if autonomy_hours is not None:
+                lines.append(
+                    self.t("control_autonomy_infinite")
+                    if math.isinf(autonomy_hours)
+                    else self.t("control_autonomy", hours=autonomy_hours)
+                )
+        card.set_level(assessment.level, "\n".join(lines))
+
+    @staticmethod
+    def _control_autonomy_hours(
+        assessment: LeakAssessment, telemetry: Telemetry
+    ) -> float | None:
+        if not telemetry.control or not telemetry.in_limits:
+            return None
+        return control_autonomy_hours(
+            telemetry.positive_source_bar,
+            telemetry.current_pressure_bar,
+            assessment.rate_bar_min,
+        )
 
     def _refresh_leak_texts(self) -> None:
-        self.sample_leak.set_level(self.sample_leak.level, self.t(self.sample_leak.level))
-        self.inlet_leak.set_level(self.inlet_leak.level, self.t(self.inlet_leak.level))
+        self._apply_leak(self.sample_leak, self.sample_assessment)
+        self._apply_leak(
+            self.inlet_leak,
+            self.inlet_assessment,
+            self._control_autonomy_hours(self.inlet_assessment, self.current_telemetry),
+        )
 
     def _set_if_finite(self, edit: QLineEdit, value: object) -> None:
         try:

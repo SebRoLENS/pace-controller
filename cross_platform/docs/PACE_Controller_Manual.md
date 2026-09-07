@@ -1,7 +1,7 @@
 ---
 title: "PACE Controller - Cross-Platform User and Technical Manual"
 author: "Sebastiano Romi - LENS, University of Florence (UNIFI)"
-date: "Version 1.0.3 - 2026"
+date: "Version 1.1.0 - 2026"
 geometry: margin=2.2cm
 colorlinks: true
 lang: en
@@ -9,7 +9,7 @@ lang: en
 
 # PACE Controller
 
-User and technical manual for version **1.0.3**.
+User and technical manual for version **1.1.0**.
 
 ## 1. Scope
 
@@ -198,7 +198,7 @@ Nine telemetry cards are always arranged on two rows:
 
 Pressure, target, source, slew, valve-effort, and margin values are displayed with three decimal places. CSV telemetry retains the full numeric values received and parsed by the application; visual formatting does not reduce stored precision.
 
-Two prominent panels immediately below the telemetry display sample-side and positive-inlet leak status. The operating pages are MANUAL, INDENTING, ROUTINE, SETTINGS, and LOG.
+Two prominent panels immediately below the telemetry display sample-side and cylinder/positive-source pressure-loss status. Once a rate is available, it is shown in bar/h. During steady CONTROL, the source panel also shows the estimated remaining autonomy. The operating pages are MANUAL, INDENTING, ROUTINE, SETTINGS, and LOG.
 
 ## 8. Manual pressure control
 
@@ -303,18 +303,18 @@ Only decreases are considered pressure losses. Increases are clipped to zero los
 
 ### 13.2 Operating condition
 
-Histories are collected only in MEASURE with no active automation. During CONTROL they are cleared and both panels show **ASSESSMENT PAUSED (CONTROL)**. After returning to MEASURE, assessment restarts.
+Sample-side history is collected in MEASURE with no active automation. Cylinder/positive-source history is collected both in MEASURE and during steady, in-limits CONTROL, but is reset while the target is moving. No rate is shown until at least three minutes of data have been averaged by regression, avoiding unstable instantaneous estimates.
 
 ### 13.3 Calculation and default classes
 
-A linear least-squares slope is calculated over the rolling history. With default settings:
+A linear least-squares slope is calculated over the rolling history. The fitted loss rate is displayed in bar/h. During steady CONTROL, cylinder autonomy is estimated as $(P_{source,+} - P_{sample}) / r$, where $r$ is the cylinder pressure-loss rate in bar/h. This is an operational estimate, not a safety guarantee; it does not reserve the 2 bar software-interlock margin. With default settings:
 
 | Display | Colour | Equivalent fitted loss rate |
 |---|---|---|
 | NO LEAK | Green | `<=0.0005 bar/min` after 10 min |
 | WARNING: slight leak | Yellow | `>0.0005` and `<=0.001 bar/min` after 5 min |
-| WARNING: pressure leak | Orange | `>0.001` and `<=0.005 bar/min` after 1 min |
-| WARNING: SIGNIFICANT PRESSURE LEAK | Red | `>0.005 bar/min` |
+| WARNING: pressure leak | Orange | `>0.001` and `<=0.005 bar/min` after at least 3 min |
+| WARNING: SIGNIFICANT PRESSURE LEAK | Red | `>0.005 bar/min` after at least 3 min |
 
 The SETTINGS page permits editing the reference drop and green, yellow, and orange times. Required ordering is `green > yellow > orange > 0`.
 
