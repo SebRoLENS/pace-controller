@@ -6,7 +6,7 @@
 
 <p align="center">
   <a href="https://github.com/SebRoLENS/pace-controller/releases/latest"><img src="https://img.shields.io/github/v/release/SebRoLENS/pace-controller" alt="Version"></a>
-  <a href="https://github.com/SebRoLENS/pace-controller/releases/latest"><img src="https://img.shields.io/badge/DOI-pending-lightgrey" alt="DOI"></a>
+  <a href="https://doi.org/10.5281/zenodo.22639573"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.22639573.svg" alt="DOI"></a>
   <a href="https://github.com/SebRoLENS/pace-controller/releases/latest"><img src="https://img.shields.io/badge/Windows-10%2F11-0078D4?logo=windows" alt="Windows"></a>
   <a href="https://github.com/SebRoLENS/pace-controller/releases/latest"><img src="https://img.shields.io/badge/Linux-x86__64-FCC624?logo=linux&logoColor=black" alt="Linux"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="MIT License"></a>
@@ -116,11 +116,10 @@ python -m pytest
 If PACE Controller contributes to published work, cite the exact version used.
 GitHub also provides a **Cite this repository** entry from [`CITATION.cff`](CITATION.cff).
 
-Version **1.1.0** will be archived by the Zenodo GitHub integration. The
-version DOI will then be inserted here automatically.
+> Romi, S. (2026). *PACE Controller* (Version 1.1.0)
+> [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.22639573
 
-> Romi, S. (2026). *PACE Controller* (Version 1.1.0) [Computer software].
-> GitHub. https://github.com/SebRoLENS/pace-controller/releases/tag/v1.1.0
+DOI: [**10.5281/zenodo.22639573**](https://doi.org/10.5281/zenodo.22639573)
 
 ## License and independence
 
