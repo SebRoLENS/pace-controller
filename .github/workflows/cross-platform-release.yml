@@ -24,7 +24,6 @@ jobs:
     timeout-minutes: 30
     env:
       QT_QPA_PLATFORM: offscreen
-      PACE_CONTROLLER_DATA_DIR: ${{ runner.temp }}/pace-controller-data
       PYTHONPATH: cross_platform/src
     outputs:
       version: ${{ steps.prepare.outputs.version }}
@@ -57,6 +56,8 @@ jobs:
           echo "Preparing PACE Controller v$VERSION"
 
       - name: Render and validate the versioned interface
+        env:
+          PACE_CONTROLLER_DATA_DIR: ${{ runner.temp }}/pace-controller-data
         run: |
           python -m pace_controller --language en --screenshot cross_platform/docs/pace_controller_gui.png
           python -c "from PySide6.QtGui import QImage; i=QImage('cross_platform/docs/pace_controller_gui.png'); assert not i.isNull() and i.width() >= 1000 and i.height() >= 700, (i.width(), i.height())"
@@ -71,6 +72,8 @@ jobs:
           test -s cross_platform/docs/PACE_Controller_Manual.pdf
 
       - name: Validate prepared release
+        env:
+          PACE_CONTROLLER_DATA_DIR: ${{ runner.temp }}/pace-controller-data
         run: |
           VERSION="${{ steps.prepare.outputs.version }}"
           python tests/test_project.py
