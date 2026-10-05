@@ -2,6 +2,11 @@
 
 All notable changes are documented here. The project follows semantic versioning.
 
+## [Unreleased]
+
+- Add independent Stop buttons for long term measurements, keeping the last result visible until a new measurement starts.
+- Display available short term averaging history out of five minutes and long term history from 0 / 120 min.
+
 ## [1.1.1] - 2026-10-05
 
 - Automated validated cross-platform maintenance release.

@@ -307,7 +307,7 @@ Sample-side history is collected in MEASURE with no active automation. Cylinder/
 
 ### 13.3 Calculation and default classes
 
-The signed pressure-loss rates are averaged over a rolling five-minute window, weighted by the duration between readings. This equals the net pressure drop divided by the window duration, with negative average losses clipped to zero. A boundary value is interpolated when needed. During startup, the available history is used without waiting for five minutes. The average loss rate is displayed in bar/h. During steady CONTROL, cylinder autonomy is estimated as $(P_{source,+} - P_{sample}) / r$, where $r$ is the cylinder pressure-loss rate in bar/h. This is an operational estimate, not a safety guarantee; it does not reserve the 2 bar software-interlock margin. With default settings:
+The signed pressure-loss rates are averaged over a rolling five-minute window, weighted by the duration between readings. This equals the net pressure drop divided by the window duration, with negative average losses clipped to zero. A boundary value is interpolated when needed. During startup, the available history is used without waiting for five minutes. The average loss rate is displayed in bar/h. Each short term panel also displays its available window duration out of five minutes, starting at 0 / 5 min. During steady CONTROL, cylinder autonomy is estimated as $(P_{source,+} - P_{sample}) / r$, where $r$ is the cylinder pressure-loss rate in bar/h. This is an operational estimate, not a safety guarantee; it does not reserve the 2 bar software-interlock margin. With default settings:
 
 | Display | Colour | Equivalent average loss rate |
 |---|---|---|
@@ -322,7 +322,9 @@ A pressure trend does not uniquely identify a physical leak. Thermal equilibrati
 
 ### 13.4 Manual long term leak measurement
 
-Each side has its own **Measure long term leak** button and adjacent **Reset** button. Start this measurement when the system is stable. The additional result uses a two-hour moving average, independently of the always-visible five-minute result and of the other side. During startup, it uses the available readings and displays the collected window duration out of 120 minutes.
+Each side has its own **Measure long term leak**, **Reset**, and **Stop** buttons. Start this measurement when the system is stable. The additional result uses a two-hour moving average, independently of the always-visible five-minute result and of the other side. During startup, it uses the available readings and displays the collected window duration out of 120 minutes.
+
+**Stop** ends collection only for that side and keeps the last result visible, marked STOPPED. The other side and both short term measurements continue. **Measure long term leak** or **Reset** starts a fresh measurement.
 
 **Reset** clears only that side's long term history and restarts collection from new readings. The short term result and the other side are unaffected. Sample-side collection requires MEASURE without automation; cylinder-side collection permits MEASURE or steady, in-limits CONTROL. Leaving those conditions clears the corresponding history, and changing the cylinder operating mode also restarts its history. Disconnecting ends both manual measurements; reconnect and start them again as needed.
 
