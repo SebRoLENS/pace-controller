@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QDialog,
+    QDoubleSpinBox,
     QDialogButtonBox,
     QFileDialog,
     QFormLayout,
@@ -27,10 +28,13 @@ from PySide6.QtWidgets import (
     QHeaderView,
     QLabel,
     QLineEdit,
+    QLayout,
     QMainWindow,
     QMessageBox,
     QPushButton,
+    QSizePolicy,
     QSpinBox,
+    QScrollArea,
     QStackedWidget,
     QStatusBar,
     QTabWidget,
@@ -66,8 +70,8 @@ QMainWindow, QWidget { background: #f4f6f8; color: #202830; font-family: "Segoe 
 QLabel, QCheckBox { background: transparent; }
 QGroupBox { background: white; border: 1px solid #cbd3db; border-radius: 6px; margin-top: 12px; padding-top: 8px; font-weight: 600; }
 QGroupBox::title { subcontrol-origin: margin; left: 12px; padding: 0 5px; }
-QLineEdit, QComboBox, QSpinBox { background: white; border: 1px solid #aeb9c4; border-radius: 3px; padding: 5px; min-height: 22px; }
-QLineEdit:disabled, QComboBox:disabled, QSpinBox:disabled { background: #e8ebee; color: #68727c; }
+QLineEdit, QComboBox, QSpinBox, QDoubleSpinBox { background: white; border: 1px solid #aeb9c4; border-radius: 3px; padding: 5px; min-height: 22px; }
+QLineEdit:disabled, QComboBox:disabled, QSpinBox:disabled, QDoubleSpinBox:disabled { background: #e8ebee; color: #68727c; }
 QPushButton, QToolButton { background: #e7edf3; border: 1px solid #9eabb8; border-radius: 4px; padding: 7px 12px; }
 QPushButton:hover, QToolButton:hover { background: #d8e5f1; }
 QPushButton:disabled { color: #8b949d; background: #edf0f2; }
@@ -239,6 +243,8 @@ class MainWindow(QMainWindow):
         self.t = Translator(settings.language)
         self.connected = False
         self.busy = False
+        self.indent_running = False
+        self.indent_paused = False
         self.parameters_unlocked = False
         self.current_telemetry = Telemetry()
         self.capabilities = DeviceCapabilities()
@@ -454,7 +460,7 @@ class MainWindow(QMainWindow):
 
         self.tabs = QTabWidget()
         self.tabs.setDocumentMode(False)
-        self.tabs.setMinimumHeight(350)
+        self.tabs.setMinimumHeight(220)
         self.manual_tab = self._build_manual_tab()
         self.indenting_tab = self._build_indenting_tab()
         self.routine_tab = self._build_routine_tab()
@@ -465,6 +471,7 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(self.routine_tab, "")
         self.tabs.addTab(self.settings_tab, "")
         self.tabs.addTab(self.log_tab, "")
+        self.tabs.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Ignored)
         root.addWidget(self.tabs, 1)
 
         self.status = QStatusBar()
@@ -584,14 +591,25 @@ class MainWindow(QMainWindow):
         self._localized.append((self.indent_description, "indenting_description"))
         form_widget = QWidget()
         form = QFormLayout(form_widget)
+        form.setSizeConstraint(QLayout.SetMinimumSize)
         self.indent_target_edit = QLineEdit("1")
         self.indent_slew_edit = QLineEdit("0.1")
+        self.indent_decompression_edit = QLineEdit("0.1")
+        self.indent_dwell_spin = QDoubleSpinBox()
+        self.indent_dwell_spin.setRange(0, 86400)
+        self.indent_dwell_spin.setDecimals(1)
+        self.indent_dwell_spin.setSuffix(" s")
+        self.indent_dwell_spin.setValue(120)
         self.indent_target_label = QLabel()
         self._localized.append((self.indent_target_label, "target_bar"))
         self.indent_slew_label = QLabel()
-        self._localized.append((self.indent_slew_label, "slew_bar_s"))
+        self._localized.append((self.indent_slew_label, "compression_slew"))
         form.addRow(self.indent_target_label, self.indent_target_edit)
         form.addRow(self.indent_slew_label, self.indent_slew_edit)
+        for key, widget in (("decompression_slew", self.indent_decompression_edit), ("indent_wait", self.indent_dwell_spin)):
+            label = QLabel()
+            self._localized.append((label, key))
+            form.addRow(label, widget)
         buttons = QHBoxLayout()
         self.start_indent_button = QPushButton()
         self.start_indent_button.setObjectName("primary")
@@ -599,7 +617,12 @@ class MainWindow(QMainWindow):
         self.stop_indent_button = QPushButton()
         self.stop_indent_button.setObjectName("danger")
         self._localized.append((self.stop_indent_button, "measure_stop"))
+        self.pause_indent_button = QPushButton()
+        self.resume_indent_button = QPushButton()
+        self._localized.extend([(self.pause_indent_button, "pause_change"), (self.resume_indent_button, "resume")])
         buttons.addWidget(self.start_indent_button)
+        buttons.addWidget(self.pause_indent_button)
+        buttons.addWidget(self.resume_indent_button)
         buttons.addWidget(self.stop_indent_button)
         buttons.addStretch(1)
         layout.addWidget(self.indent_title)
@@ -607,7 +630,12 @@ class MainWindow(QMainWindow):
         layout.addWidget(form_widget)
         layout.addLayout(buttons)
         layout.addStretch(1)
-        return tab
+        layout.setSizeConstraint(QLayout.SetMinimumSize)
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QScrollArea.NoFrame)
+        scroll.setWidget(tab)
+        return scroll
 
     def _build_routine_tab(self) -> QWidget:
         tab = QWidget()
@@ -679,21 +707,28 @@ class MainWindow(QMainWindow):
         self.leak_settings_group = QGroupBox()
         self._localized.append((self.leak_settings_group, "leak_settings"))
         form = QFormLayout(self.leak_settings_group)
-        self.reference_drop_edit = QLineEdit("0.005")
-        self.green_time_edit = QLineEdit("10")
-        self.yellow_time_edit = QLineEdit("5")
-        self.orange_time_edit = QLineEdit("1")
-        labels: list[tuple[QLabel, str, QLineEdit]] = []
-        for key, edit in (
-            ("reference_drop", self.reference_drop_edit),
-            ("green_time", self.green_time_edit),
-            ("yellow_time", self.yellow_time_edit),
-            ("orange_time", self.orange_time_edit),
-        ):
+        form.setSizeConstraint(QLayout.SetMinimumSize)
+        self.leak_rate_spins = []
+        for key, value in (("green_limit_hour", 0.1), ("yellow_limit_hour", 0.3), ("orange_limit_hour", 0.6)):
+            edit = QDoubleSpinBox()
+            edit.setDecimals(3)
+            edit.setRange(0.001, 10000)
+            edit.setSingleStep(0.05)
+            edit.setSuffix(" bar/h")
+            edit.setValue(value)
+            self.leak_rate_spins.append(edit)
             label = QLabel()
             self._localized.append((label, key))
-            labels.append((label, key, edit))
             form.addRow(label, edit)
+        self.leak_bands_label = QLabel()
+        self.leak_bands_label.setWordWrap(True)
+        form.addRow(self.leak_bands_label)
+        self.leak_defaults_button = QPushButton()
+        self._localized.append((self.leak_defaults_button, "restore_defaults"))
+        self.leak_defaults_button.clicked.connect(self.restore_leak_defaults)
+        form.addRow(self.leak_defaults_button)
+        for edit in self.leak_rate_spins:
+            edit.valueChanged.connect(self.update_leak_bands)
         self.save_settings_button = QPushButton()
         self.save_settings_button.setObjectName("primary")
         self._localized.append((self.save_settings_button, "save_settings"))
@@ -716,7 +751,12 @@ class MainWindow(QMainWindow):
         self._localized.append((self.safety_info_label, "safety_info"))
         layout.addWidget(self.safety_info_label)
         layout.addStretch(1)
-        return tab
+        layout.setSizeConstraint(QLayout.SetMinimumSize)
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QScrollArea.NoFrame)
+        scroll.setWidget(tab)
+        return scroll
 
     def _build_log_tab(self) -> QWidget:
         tab = QWidget()
@@ -739,6 +779,8 @@ class MainWindow(QMainWindow):
         self.measure_button.clicked.connect(self.service.stop_and_measure)
         self.start_indent_button.clicked.connect(self.start_indenting)
         self.stop_indent_button.clicked.connect(self.service.stop_and_measure)
+        self.pause_indent_button.clicked.connect(self.service.pause_indenting)
+        self.resume_indent_button.clicked.connect(self.resume_indenting)
         self.add_step_button.clicked.connect(self.add_routine_step)
         self.remove_step_button.clicked.connect(self.remove_routine_step)
         self.save_routine_button.clicked.connect(self.save_routine)
@@ -797,10 +839,8 @@ class MainWindow(QMainWindow):
             if index >= 0:
                 self.serial_port_combo.setCurrentIndex(index)
         thresholds = self.settings.leak_thresholds
-        self.reference_drop_edit.setText(f"{thresholds.reference_drop_bar:g}")
-        self.green_time_edit.setText(f"{thresholds.green_minutes:g}")
-        self.yellow_time_edit.setText(f"{thresholds.yellow_minutes:g}")
-        self.orange_time_edit.setText(f"{thresholds.orange_minutes:g}")
+        for edit, value in zip(self.leak_rate_spins, (thresholds.green_max_bar_hour, thresholds.yellow_max_bar_hour, thresholds.orange_max_bar_hour)):
+            edit.setValue(value)
 
     def apply_language(self) -> None:
         self.setWindowTitle(self.t("window_title", version=__version__))
@@ -837,6 +877,7 @@ class MainWindow(QMainWindow):
         self.automation_status.setText(self.t("automation_idle") if not self.busy else self.automation_status.text())
         self._set_parameter_lock_ui()
         self._refresh_leak_texts()
+        self.update_leak_bands()
 
     def _language_changed(self, index: int) -> None:
         self.settings.language = "it" if index == 1 else "en"
@@ -928,6 +969,9 @@ class MainWindow(QMainWindow):
             self._set_parameter_lock_ui()
 
         self._refresh_long_term_leaks()
+        if not connected:
+            self.indent_running = self.indent_paused = False
+        self._update_indent_controls()
 
     def set_busy(self, busy: bool) -> None:
         self.busy = busy
@@ -945,6 +989,9 @@ class MainWindow(QMainWindow):
         self.stop_indent_button.setEnabled(self.connected)
         self.stop_routine_button.setEnabled(self.connected)
         self.connect_button.setEnabled(not self.connected and not busy)
+        if not busy:
+            self.indent_running = self.indent_paused = False
+        self._update_indent_controls()
 
     def toggle_parameter_lock(self) -> None:
         if self.parameters_unlocked:
@@ -998,16 +1045,35 @@ class MainWindow(QMainWindow):
         except ValueError as exc:
             self.show_error(str(exc))
 
+    def indent_steps(self) -> list[PressureStep]:
+        return [
+            PressureStep(self.number(self.indent_target_edit.text()), self.number(self.indent_slew_edit.text()), self.indent_dwell_spin.value()),
+            PressureStep(0, self.number(self.indent_decompression_edit.text()), 0),
+        ]
+
     def start_indenting(self) -> None:
         try:
-            target = self.number(self.indent_target_edit.text())
-            slew = self.number(self.indent_slew_edit.text())
-            steps = [PressureStep(target, slew, 120), PressureStep(0, slew, 0)]
+            steps = self.indent_steps()
             if not self.confirm_steps(steps):
                 return
-            self.service.start_indenting(target, slew, self.control_parameters())
+            self.service.start_indenting(steps[0].target_bar, steps[0].slew_bar_s, self.control_parameters(), steps[1].slew_bar_s, steps[0].dwell_seconds)
         except ValueError as exc:
             self.show_error(str(exc))
+
+    def resume_indenting(self) -> None:
+        try:
+            steps = self.indent_steps()
+            if not self.confirm_steps(steps):
+                return
+            self.service.resume_indenting(steps[0].target_bar, steps[0].slew_bar_s, steps[1].slew_bar_s, steps[0].dwell_seconds)
+        except ValueError as exc:
+            self.show_error(str(exc))
+
+    def _update_indent_controls(self) -> None:
+        self.pause_indent_button.setEnabled(self.connected and self.indent_running and not self.indent_paused)
+        self.resume_indent_button.setEnabled(self.connected and self.indent_running and self.indent_paused)
+        for widget in (self.indent_target_edit, self.indent_slew_edit, self.indent_decompression_edit, self.indent_dwell_spin):
+            widget.setEnabled(self.connected and (not self.busy or self.indent_paused))
 
     def routine_steps(self) -> list[PressureStep]:
         steps: list[PressureStep] = []
@@ -1172,6 +1238,9 @@ class MainWindow(QMainWindow):
         data = dict(event) if isinstance(event, dict) else {"key": "automation_idle"}
         key = str(data.pop("key", "automation_idle"))
         self.automation_status.setText(self.t(key, **data))
+        self.indent_running = data.get("mode") == "INDENTING" and key in {"moving", "holding", "indenting_paused"}
+        self.indent_paused = self.indent_running and key == "indenting_paused"
+        self._update_indent_controls()
 
     def on_alarm(self, event: object) -> None:
         data = dict(event) if isinstance(event, dict) else {}
@@ -1231,14 +1300,17 @@ class MainWindow(QMainWindow):
         except (ValueError, TypeError, OSError, json.JSONDecodeError) as exc:
             self.show_error(str(exc))
 
+    def restore_leak_defaults(self) -> None:
+        for edit, value in zip(self.leak_rate_spins, (0.1, 0.3, 0.6)):
+            edit.setValue(value)
+
+    def update_leak_bands(self) -> None:
+        green, yellow, orange = (edit.value() for edit in self.leak_rate_spins)
+        self.leak_bands_label.setText(self.t("leak_bands", green=green, yellow=yellow, orange=orange))
+
     def save_leak_settings(self) -> None:
         try:
-            thresholds = LeakThresholds(
-                reference_drop_bar=self.number(self.reference_drop_edit.text()),
-                green_minutes=self.number(self.green_time_edit.text()),
-                yellow_minutes=self.number(self.yellow_time_edit.text()),
-                orange_minutes=self.number(self.orange_time_edit.text()),
-            )
+            thresholds = LeakThresholds(*(edit.value() for edit in self.leak_rate_spins))
             thresholds.validate()
             self.settings.leak_thresholds = thresholds
             self.sample_monitor.update_thresholds(thresholds)

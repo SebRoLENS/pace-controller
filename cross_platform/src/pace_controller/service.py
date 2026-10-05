@@ -132,13 +132,18 @@ class PaceService(QObject):
         self._commands.put(("sequence", ("MANUAL", [step], parameters, keep_control)))
 
     def start_indenting(
-        self, target_bar: float, slew_bar_s: float, parameters: ControlParameters
+        self, target_bar: float, compression_slew: float, parameters: ControlParameters,
+        decompression_slew: float | None = None, dwell_seconds: float = 120.0,
     ) -> None:
-        steps = [
-            PressureStep(target_bar, slew_bar_s, 120.0),
-            PressureStep(0.0, slew_bar_s, 0.0),
-        ]
+        decompression_slew = compression_slew if decompression_slew is None else decompression_slew
+        steps = [PressureStep(target_bar, compression_slew, dwell_seconds), PressureStep(0.0, decompression_slew, 0.0)]
         self._commands.put(("sequence", ("INDENTING", steps, parameters, False)))
+
+    def pause_indenting(self) -> None:
+        self._commands.put(("pause_indenting", ()))
+
+    def resume_indenting(self, target_bar: float, compression_slew: float, decompression_slew: float, dwell_seconds: float) -> None:
+        self._commands.put(("resume_indenting", (target_bar, compression_slew, decompression_slew, dwell_seconds)))
 
     def start_routine(
         self,
@@ -171,7 +176,7 @@ class PaceService(QObject):
             except Exception as exc:  # final containment for the worker thread
                 self._emit_alarm("device_error", error=str(exc))
                 self._write_log(f"Command failed: {exc}")
-                self.busy_changed.emit(False)
+                self.busy_changed.emit(self._automation is not None)
 
             now = time.monotonic()
             if self._connected and now >= next_poll:
@@ -194,6 +199,10 @@ class PaceService(QObject):
             self.automation_changed.emit({"key": "automation_idle"})
         elif command == "vent":
             self._start_vent(*arguments)
+        elif command == "pause_indenting":
+            self._pause_indenting()
+        elif command == "resume_indenting":
+            self._resume_indenting(*arguments)
         elif command == "load_parameters":
             self._load_parameters()
 
@@ -346,7 +355,7 @@ class PaceService(QObject):
                 raise ValueError("Pressure step contains a non-finite value")
             if step.slew_bar_s <= 0 and not step.maximum_rate:
                 raise ValueError("Slew rate must be positive")
-            if step.dwell_seconds < 0:
+            if not math.isfinite(step.dwell_seconds) or step.dwell_seconds < 0:
                 raise ValueError("Dwell time cannot be negative")
             low = self._capabilities.range_min_bar
             high = self._capabilities.range_max_bar
@@ -362,6 +371,47 @@ class PaceService(QObject):
                 raise ValueError(
                     f"Target {step.target_bar} bar would leave less than {self.minimum_source_margin_bar:.1f} bar positive-source margin"
                 )
+
+    def _pause_indenting(self) -> None:
+        self._require_connected()
+        cycle = self._automation
+        if cycle is None or cycle["mode"] != "INDENTING" or cycle["state"] == "paused":
+            raise ValueError("No running indenting cycle to pause")
+        now = time.monotonic()
+        current = self._telemetry.current_pressure_bar
+        if not math.isfinite(current):
+            raise ValueError("Cannot pause without valid pressure telemetry")
+        hold = PressureStep(current, cycle["steps"][cycle["index"]].slew_bar_s, 0)
+        self._validate_steps([hold])
+        try:
+            self._apply_pressure_step(hold, cycle["parameters"])
+        except Exception:
+            self._cancel_automation()
+            self._set_measure()
+            raise
+        if cycle["state"] == "dwelling":
+            cycle["dwell_elapsed"] = cycle.get("dwell_elapsed", 0.0) + max(0.0, now - cycle["dwell_started"])
+        cycle["state"] = "paused"
+        self.automation_changed.emit({"key": "indenting_paused", "mode": "INDENTING", "index": cycle["index"] + 1, "total": len(cycle["steps"])})
+
+    def _resume_indenting(self, target_bar: float, compression_slew: float, decompression_slew: float, dwell_seconds: float) -> None:
+        self._require_connected()
+        cycle = self._automation
+        if cycle is None or cycle["mode"] != "INDENTING" or cycle["state"] != "paused":
+            raise ValueError("No paused indenting cycle to resume")
+        steps = [PressureStep(target_bar, compression_slew, dwell_seconds), PressureStep(0.0, decompression_slew, 0.0)]
+        self._validate_parameters(cycle["parameters"])
+        self._validate_steps(steps)
+        margin = self._telemetry.positive_source_bar - self._telemetry.current_pressure_bar
+        if not math.isfinite(margin) or margin < self.minimum_source_margin_bar or (self._supply_interlock_latched and margin < self.source_margin_rearm_bar):
+            raise ValueError("Insufficient source margin to resume")
+        cycle["steps"] = steps
+        try:
+            self._start_current_step()
+        except Exception:
+            self._cancel_automation()
+            self._set_measure()
+            raise
 
     def _start_current_step(self) -> None:
         if self._automation is None:
@@ -427,9 +477,11 @@ class PaceService(QObject):
             step = steps[index]
             if state == "waiting":
                 if self._telemetry.in_limits or (step.target_bar == 0.0 and self._telemetry.zero_target_stable):
-                    if step.dwell_seconds > 0:
+                    remaining = max(0.0, step.dwell_seconds - self._automation.get("dwell_elapsed", 0.0))
+                    if remaining > 0:
                         self._automation["state"] = "dwelling"
-                        self._automation["dwell_end"] = now + step.dwell_seconds
+                        self._automation["dwell_started"] = now
+                        self._automation["dwell_end"] = now + remaining
                     else:
                         self._complete_step()
                 elif now > float(self._automation["deadline"]):
@@ -458,6 +510,7 @@ class PaceService(QObject):
         if self._automation is None:
             return
         self._automation["index"] = int(self._automation["index"]) + 1
+        self._automation["dwell_elapsed"] = 0.0
         steps: list[PressureStep] = self._automation["steps"]
         if int(self._automation["index"]) < len(steps):
             self._start_current_step()

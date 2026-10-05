@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
 from enum import Enum
-from math import nan
+from math import isfinite, nan
 from typing import Any
 
 
@@ -84,18 +84,35 @@ class DeviceCapabilities:
 
 @dataclass(slots=True)
 class LeakThresholds:
-    reference_drop_bar: float = 0.005
-    green_minutes: float = 10.0
-    yellow_minutes: float = 5.0
-    orange_minutes: float = 1.0
+    green_max_bar_hour: float = 0.1
+    yellow_max_bar_hour: float = 0.3
+    orange_max_bar_hour: float = 0.6
 
     def validate(self) -> None:
-        if self.reference_drop_bar <= 0:
-            raise ValueError("Reference pressure drop must be positive.")
-        if not self.green_minutes > self.yellow_minutes > self.orange_minutes > 0:
-            raise ValueError(
-                "Leak times must satisfy green > yellow > orange > 0."
-            )
+        values = (self.green_max_bar_hour, self.yellow_max_bar_hour, self.orange_max_bar_hour)
+        if not all(isfinite(value) for value in values) or not 0 < values[0] < values[1] < values[2]:
+            raise ValueError("Thresholds in bar/h must satisfy 0 < green < yellow < orange.")
+
+    @classmethod
+    def from_dict(cls, raw: dict[str, Any]) -> "LeakThresholds":
+        if any(key in raw for key in cls.__dataclass_fields__):
+            result = cls(**{key: float(value) for key, value in raw.items() if key in cls.__dataclass_fields__})
+        elif "reference_drop_bar" in raw:
+            old = tuple(float(raw.get(key, default)) for key, default in (
+                ("reference_drop_bar", 0.005), ("green_minutes", 10),
+                ("yellow_minutes", 5), ("orange_minutes", 1),
+            ))
+            if old == (0.005, 10.0, 5.0, 1.0):
+                result = cls()
+            else:
+                reference, green, yellow, orange = old
+                if not 0 < orange < yellow < green or not isfinite(reference) or reference <= 0:
+                    raise ValueError("Invalid legacy leak thresholds")
+                result = cls(*(reference * 60.0 / minutes for minutes in (green, yellow, orange)))
+        else:
+            result = cls()
+        result.validate()
+        return result
 
 
 @dataclass(slots=True)

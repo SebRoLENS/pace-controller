@@ -228,17 +228,11 @@ VENT has a separate confirmation even when the panel is unlocked. The panel auto
 
 ## 10. Indenting cycle
 
-The indenting page executes a fixed sequence:
+Choose the target pressure, separate compression and decompression slew rates (bar/s), and the hold duration (seconds, default **120**). The cycle reaches the target in CONTROL, waits for in-limits, holds for the configured duration, returns to zero using the decompression slew, then requests MEASURE. The shared stable-zero criterion also applies to the return.
 
-1. set the selected slew;
-2. enter CONTROL and reach the requested pressure;
-3. wait for the PACE in-limits indication;
-4. maintain CONTROL for 120 seconds;
-5. command zero bar with the same slew;
-6. wait for in-limits at zero;
-7. request MEASURE.
+**Pause and change** holds the current measured pressure in CONTROL and freezes the hold timer. While paused, edit the target, both slew rates, and the hold duration. **Resume** continues the current phase with the new values. During compression or holding, it reaches the updated target before completing the remaining hold time; time already spent holding is retained and time paused is excluded. If the new duration is shorter than the elapsed hold time, no further hold is required. During decompression, it continues returning to zero using the updated decompression slew; completed phases are not repeated.
 
-Stopping the cycle requests MEASURE immediately.
+**STOP / MEASURE** ends the cycle and requests MEASURE immediately. Connection, module-range and source-margin checks remain active, including while paused and on resume.
 
 ## 11. Programmable routines
 
@@ -317,12 +311,12 @@ A linear least-squares fit of pressure versus time is calculated over all readin
 
 | Display | Colour | Equivalent fitted loss rate |
 |---|---|---|
-| NO LEAK | Green | `<=0.0005 bar/min` after 10 min of uninterrupted monitoring |
-| WARNING: slight leak | Yellow | `>0.0005` and `<=0.001 bar/min`, immediately |
-| WARNING: pressure leak | Orange | `>0.001` and `<=0.005 bar/min` immediately |
-| WARNING: SIGNIFICANT PRESSURE LEAK | Red | `>0.005 bar/min` immediately |
+| NO LEAK | Green | `<0.1 bar/h` |
+| WARNING: slight leak | Yellow | `>=0.1` and `<0.3 bar/h` |
+| WARNING: pressure leak | Orange | `>=0.3` and `<=0.6 bar/h` |
+| WARNING: SIGNIFICANT PRESSURE LEAK | Red | `>0.6 bar/h` |
 
-The SETTINGS page permits editing the reference drop and green, yellow, and orange times. Required ordering is `green > yellow > orange > 0`.
+The SETTINGS page directly edits the three colour boundaries in **bar/h**, with a live band summary and a **Restore defaults** button. Press **Save settings** to apply. Required ordering is `0 < green boundary < yellow boundary < orange boundary`. All colours are available as soon as a fitted rate exists, without a separate green waiting period. These thresholds apply to both sides and both short and long term measurements. Existing custom reference-drop/time settings are converted to equivalent hourly limits; old factory defaults become the new 0.1 / 0.3 / 0.6 bar/h defaults.
 
 A pressure trend does not uniquely identify a physical leak. Thermal equilibration, regulator hysteresis, pressure-medium behaviour, and sensor noise can produce similar signals. Confirm warnings using an appropriate laboratory leak-test procedure.
 
