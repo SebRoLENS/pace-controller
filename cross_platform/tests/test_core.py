@@ -333,14 +333,14 @@ def test_five_minute_average_excludes_old_loss_and_keeps_green_confirmation() ->
     assert monitor.add(603.0, 49.0, True).level == "assessing"
 
 
-def test_average_interpolates_boundary_and_weights_irregular_intervals() -> None:
+def test_regression_interpolates_boundary_and_uses_irregular_timestamps() -> None:
     monitor = LeakMonitor(LeakThresholds())
     for timestamp, value in [(0.0, 50.0), (100.0, 49.0), (200.0, 49.0)]:
         monitor.add(timestamp, value, True)
     result = monitor.add(350.0, 48.0, True)
-    # Boundary at 50 seconds: pressure 49.5, net loss 1.5 bar over 5 min.
+    # Fit (50,49.5), (100,49), (200,49), (350,48): loss slope = 19/70 bar/min.
     assert result.observation_minutes == 5.0
-    assert result.rate_bar_min == pytest.approx(0.3)
+    assert result.rate_bar_min == pytest.approx(19.0 / 70.0)
 
 
 def test_average_does_not_count_oscillating_noise_as_loss() -> None:
@@ -403,7 +403,7 @@ def test_two_hour_window_is_independent_of_short_term_and_reset() -> None:
         long_result = long.add(float(timestamp), pressure, True)
     assert short_result.rate_bar_min == 0.0
     assert long_result.observation_minutes == 120.0
-    assert long_result.rate_bar_min == pytest.approx(0.5 / 120.0)
+    assert long_result.rate_bar_min == pytest.approx(2227.0 / 590480.0)
     assert long.samples[0][0] == 600.0
     short_history = list(short.samples)
     long.reset()
@@ -471,3 +471,30 @@ def test_long_term_buttons_start_and_reset_each_side_independently(monkeypatch, 
     finally:
         window.close()
         app.processEvents()
+
+
+@pytest.mark.parametrize("window_minutes", [5.0, 120.0])
+def test_linear_fit_recovers_loss_with_irregular_polling_and_epoch_timestamps(window_minutes):
+    monitor = LeakMonitor(LeakThresholds(), window_minutes=window_minutes)
+    origin = 1_800_000_000.0
+    for offset in [0.0, 1.0, 9.0, 70.0, 150.0, 290.0, 350.0]:
+        result = monitor.add(origin + offset, 50.0 - 0.003 * offset / 60.0, True)
+    assert result.rate_bar_min == pytest.approx(0.003)
+    assert result.observation_minutes == pytest.approx(min(350.0 / 60.0, window_minutes))
+
+
+def test_regression_reduces_endpoint_noise_with_all_window_readings():
+    monitor = LeakMonitor(LeakThresholds())
+    for timestamp in range(301):
+        pressure = 50.1 if timestamp == 0 else 49.9 if timestamp == 300 else 50.0
+        result = monitor.add(float(timestamp), pressure, True)
+    endpoint_rate = (50.1 - 49.9) / 5.0
+    assert result.rate_bar_min < endpoint_rate / 10.0
+    assert result.rate_bar_min == pytest.approx(1800.0 / 2272550.0)
+
+
+def test_regression_uses_interior_readings_even_when_endpoints_match():
+    monitor = LeakMonitor(LeakThresholds())
+    for timestamp, pressure in [(0.0, 50.0), (60.0, 50.02), (120.0, 50.0), (180.0, 49.99), (240.0, 50.0)]:
+        result = monitor.add(timestamp, pressure, True)
+    assert result.rate_bar_min == pytest.approx(0.003)

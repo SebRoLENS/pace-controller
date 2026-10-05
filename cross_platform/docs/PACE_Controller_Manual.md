@@ -307,9 +307,9 @@ Sample-side history is collected in MEASURE with no active automation. Cylinder/
 
 ### 13.3 Calculation and default classes
 
-The signed pressure-loss rates are averaged over a rolling five-minute window, weighted by the duration between readings. This equals the net pressure drop divided by the window duration, with negative average losses clipped to zero. A boundary value is interpolated when needed. During startup, the available history is used without waiting for five minutes. The average loss rate is displayed in bar/h. Each short term panel also displays its available window duration out of five minutes, starting at 0 / 5 min. During steady CONTROL, cylinder autonomy is estimated as $(P_{source,+} - P_{sample}) / r$, where $r$ is the cylinder pressure-loss rate in bar/h. This is an operational estimate, not a safety guarantee; it does not reserve the 2 bar software-interlock margin. With default settings:
+A linear least-squares fit of pressure versus time is calculated over all readings in the rolling five-minute window. The reported loss rate is the negative fitted slope; pressure-increase slopes are clipped to zero loss. The fit uses actual timestamps and a pressure interpolated at the window boundary when needed. Intermediate readings contribute to the fit, reducing sensitivity to noise at the two endpoints. During startup, the available history is used without waiting for five minutes. The fitted loss rate is displayed in bar/h. Each short term panel also displays its available window duration out of five minutes, starting at 0 / 5 min. During steady CONTROL, cylinder autonomy is estimated as $(P_{source,+} - P_{sample}) / r$, where $r$ is the cylinder pressure-loss rate in bar/h. This is an operational estimate, not a safety guarantee; it does not reserve the 2 bar software-interlock margin. With default settings:
 
-| Display | Colour | Equivalent average loss rate |
+| Display | Colour | Equivalent fitted loss rate |
 |---|---|---|
 | NO LEAK | Green | `<=0.0005 bar/min` after 10 min of uninterrupted monitoring |
 | WARNING: slight leak | Yellow | `>0.0005` and `<=0.001 bar/min`, immediately |
@@ -322,7 +322,7 @@ A pressure trend does not uniquely identify a physical leak. Thermal equilibrati
 
 ### 13.4 Manual long term leak measurement
 
-Each side has its own **Measure long term leak**, **Reset**, and **Stop** buttons. Start this measurement when the system is stable. The additional result uses a two-hour moving average, independently of the always-visible five-minute result and of the other side. During startup, it uses the available readings and displays the collected window duration out of 120 minutes.
+Each side has its own **Measure long term leak**, **Reset**, and **Stop** buttons. Start this measurement when the system is stable. The additional result uses a linear fit over a rolling two-hour window, independently of the always-visible five-minute result and of the other side. During startup, it uses the available readings and displays the collected window duration out of 120 minutes.
 
 **Stop** ends collection only for that side and keeps the last result visible, marked STOPPED. The other side and both short term measurements continue. **Measure long term leak** or **Reset** starts a fresh measurement.
 

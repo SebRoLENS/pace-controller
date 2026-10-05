@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections import deque
 from dataclasses import dataclass
-from math import inf, isfinite
+from math import fsum, inf, isfinite
 
 from .models import LeakThresholds
 
@@ -32,7 +32,7 @@ class LeakAssessment:
 
 
 class LeakMonitor:
-    """Display loss immediately, averaging signed rates over a configurable rolling window."""
+    """Display the loss rate fitted to pressure readings in a rolling window."""
 
     def __init__(self, thresholds: LeakThresholds, window_minutes: float = 5.0) -> None:
         if not isfinite(window_minutes) or window_minutes <= 0:
@@ -77,10 +77,16 @@ class LeakMonitor:
             start_value += fraction * (next_value - start_value)
             start = cutoff
         elapsed_minutes = (timestamp - start) / 60.0
-        # Time-weighted mean of successive signed pressure-loss rates:
-        # sum(rate_i * dt_i) / sum(dt_i) = net pressure drop / duration.
-        # Clip only the final mean, so noise/increases do not create false loss.
-        rate = max(0.0, (start_value - value) / elapsed_minutes)
+        # Fit all readings inside the window, including its interpolated
+        # boundary when needed. Relative times avoid large epoch timestamps.
+        points = [(start, start_value), *list(self.samples)[1:]]
+        xs = [(stamp - start) / 60.0 for stamp, _ in points]
+        ys = [pressure for _, pressure in points]
+        mean_x = fsum(xs) / len(xs)
+        mean_y = fsum(ys) / len(ys)
+        denominator = fsum((x - mean_x) ** 2 for x in xs)
+        slope = fsum((x - mean_x) * (y - mean_y) for x, y in zip(xs, ys)) / denominator
+        rate = max(0.0, -slope)
 
         t = self.thresholds
         green_rate = t.reference_drop_bar / t.green_minutes

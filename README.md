@@ -53,8 +53,8 @@ No NI-VISA, Druck USB driver, Python, LabVIEW, or Internet connection is require
 - Nine telemetry cards visible together on two rows, with three-decimal display.
 - Manual targets, selectable slew, CONTROL/MEASURE behaviour, and protected advanced parameters.
 - Indenting cycle and editable multi-step JSON routines.
-- Immediate sample-side and cylinder-side loss indicators using a five-minute moving average, with rates in bar/h and estimated CONTROL autonomy.
-- Independent manual long term leak measurements for sample and cylinder, using two-hour moving averages and separate Reset buttons.
+- Immediate sample-side and cylinder-side loss indicators using a rolling five-minute linear fit, with rates in bar/h and estimated CONTROL autonomy.
+- Independent manual long term leak measurements for sample and cylinder, using rolling two-hour linear fits and separate Reset buttons.
 - Source-margin interlock: CONTROL stops below 2.0 bar margin and rearms at 2.2 bar.
 - Confirmation for target increases of at least 10 bar and slew above 0.5 bar/s.
 - Automatic MEASURE attempt on required-telemetry loss during CONTROL.
