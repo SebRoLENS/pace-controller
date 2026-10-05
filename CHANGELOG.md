@@ -2,6 +2,10 @@
 
 All notable changes are documented here. The project follows semantic versioning.
 
+## [1.1.3] - 2026-10-05
+
+- Automated validated cross-platform maintenance release.
+
 ## [1.1.2] - 2026-10-05
 
 - Automated validated cross-platform maintenance release.
