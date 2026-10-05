@@ -25,6 +25,7 @@ from .network import (
     configure_dedicated_adapter,
     restore_dedicated_adapter,
 )
+from .stability import ZeroTargetStability
 from .storage import DataLogger
 from .transports import ScpiTransport, TransportError, create_transport
 
@@ -96,6 +97,8 @@ class PaceService(QObject):
         self._poll_failures = 0
         self._supply_interlock_latched = False
         self._automation: dict[str, Any] | None = None
+        self._zero_target_monitor = ZeroTargetStability(maximum_gap_seconds=max(3.0, poll_interval * 3.0))
+        self._zero_target_reported = False
 
     @property
     def telemetry(self) -> Telemetry:
@@ -253,6 +256,9 @@ class PaceService(QObject):
             self.busy_changed.emit(False)
 
     def _close_device(self, request_measure: bool, emit: bool = True) -> None:
+        self._zero_target_monitor.reset()
+        self._telemetry.zero_target_stable = False
+        self._zero_target_reported = False
         self._cancel_automation()
         if request_measure and self._connected:
             try:
@@ -386,6 +392,9 @@ class PaceService(QObject):
     def _apply_pressure_step(
         self, step: PressureStep, parameters: ControlParameters
     ) -> None:
+        self._zero_target_monitor.reset()
+        self._telemetry.zero_target_stable = False
+        self._zero_target_reported = False
         module = self._module
         self._write("*CLS")
         self._write(f":UNIT{module}:PRES BAR")
@@ -417,7 +426,7 @@ class PaceService(QObject):
             index = int(self._automation["index"])
             step = steps[index]
             if state == "waiting":
-                if self._telemetry.in_limits:
+                if self._telemetry.in_limits or (step.target_bar == 0.0 and self._telemetry.zero_target_stable):
                     if step.dwell_seconds > 0:
                         self._automation["state"] = "dwelling"
                         self._automation["dwell_end"] = now + step.dwell_seconds
@@ -477,6 +486,9 @@ class PaceService(QObject):
         self._write_log(f"VENT started at {parameters.vent_rate_bar_s} bar/s.")
 
     def _set_measure(self) -> None:
+        self._zero_target_monitor.reset()
+        self._telemetry.zero_target_stable = False
+        self._zero_target_reported = False
         self._require_connected()
         self._write(f":OUTP{self._module}:STAT OFF")
         self._assert_no_error()
@@ -511,11 +523,23 @@ class PaceService(QObject):
                 in_limits=in_limits,
                 source_margin_bar=margin,
             )
+            self._telemetry.zero_target_stable = self._zero_target_monitor.add(
+                time.monotonic(), current, target, control
+            )
+            if self._telemetry.zero_target_stable and not in_limits:
+                if not self._zero_target_reported:
+                    self._write_log(f"Zero target accepted at stable residual pressure {current:.6f} bar (within +/-0.5 bar, stable for 10 s).")
+                self._zero_target_reported = True
+            else:
+                self._zero_target_reported = False
             self._poll_failures = 0
             self.telemetry_received.emit(self._telemetry)
             self.logger.telemetry(self._telemetry)
             self._check_source_interlock()
         except Exception as exc:
+            self._zero_target_monitor.reset()
+            self._zero_target_reported = False
+            self._telemetry.zero_target_stable = False
             self._poll_failures += 1
             was_control = self._telemetry.control
             self._write_log(f"Telemetry failure {self._poll_failures}: {exc}")

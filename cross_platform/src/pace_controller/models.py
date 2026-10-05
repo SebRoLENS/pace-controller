@@ -70,6 +70,7 @@ class Telemetry:
     valve_effort_percent: float = nan
     control: bool = False
     in_limits: bool = False
+    zero_target_stable: bool = False
     source_margin_bar: float = nan
 
 

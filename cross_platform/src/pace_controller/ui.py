@@ -1113,9 +1113,11 @@ class MainWindow(QMainWindow):
         self.metrics["state"].value.setStyleSheet(
             "color: #b42318;" if telemetry.control else "color: #2459e0;"
         )
-        self.metrics["target_state"].value.setText("IN LIMIT" if telemetry.in_limits else "MOVING")
+        self.metrics["target_state"].value.setText(
+            "IN LIMIT" if telemetry.in_limits else self.t("zero_target_stable") if telemetry.zero_target_stable else "MOVING"
+        )
         self.metrics["target_state"].value.setStyleSheet(
-            "color: #078419;" if telemetry.in_limits else "color: #d56a00;"
+            "color: #078419;" if telemetry.in_limits or telemetry.zero_target_stable else "color: #d56a00;"
         )
         self.metrics["source_margin"].value.setText(self.format_metric(telemetry.source_margin_bar, "bar"))
         self.metrics["source_margin"].value.setStyleSheet(
