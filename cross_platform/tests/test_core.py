@@ -308,14 +308,18 @@ def test_leak_monitor_pauses_during_control() -> None:
     ("rate", "expected"),
     [(0.0025, "slight_leak"), (0.0075, "pressure_leak"), (0.015, "significant_leak")],
 )
-def test_leak_rate_and_warnings_are_available_immediately(rate: float, expected: str) -> None:
+def test_leak_rate_is_immediate_but_warnings_wait_three_minutes(rate: float, expected: str) -> None:
     monitor = LeakMonitor(LeakThresholds())
     first = monitor.add(0.0, 50.0, True)
     assert first.observation_minutes == 0.0
     early = monitor.add(1.0, 50.0 - rate / 60.0, True)
-    assert early.level == expected
+    assert early.level == "assessing"
     assert early.observation_minutes == pytest.approx(1.0 / 60.0)
     assert early.rate_bar_min == pytest.approx(rate)
+    before = monitor.add(179.999, 50.0 - rate * 179.999 / 60.0, True)
+    assert before.level == "assessing"
+    ready = monitor.add(180.0, 50.0 - rate * 3.0, True)
+    assert ready.level == expected
 
 
 def test_five_minute_average_excludes_old_loss_and_keeps_green_confirmation() -> None:
@@ -330,7 +334,8 @@ def test_five_minute_average_excludes_old_loss_and_keeps_green_confirmation() ->
     assert monitor.samples[0][0] == 300.0
     monitor.add(601.0, 49.0, False)
     assert monitor.add(602.0, 49.0, True).level == "assessing"
-    assert monitor.add(603.0, 49.0, True).level == "no_leak"
+    assert monitor.add(603.0, 49.0, True).level == "assessing"
+    assert monitor.add(782.0, 49.0, True).level == "no_leak"
 
 
 def test_regression_interpolates_boundary_and_uses_irregular_timestamps() -> None:
@@ -371,9 +376,10 @@ def test_ui_shows_early_loss_rate_and_autonomy() -> None:
     card = SimpleNamespace(set_level=lambda level, text: displayed.append((level, text)))
     window = SimpleNamespace(t=Translator("en"))
     MainWindow._apply_leak(
-        window, card, LeakAssessment("pressure_leak", 0.003, 1.0 / 60.0), 10.0
+        window, card, LeakAssessment("assessing", 0.003, 1.0 / 60.0), 10.0
     )
-    assert displayed[0][0] == "pressure_leak"
+    assert displayed[0][0] == "assessing"
+    assert "LEAK" not in displayed[0][1]
     assert "0.180 bar/h" in displayed[0][1]
     assert "10.0 h" in displayed[0][1]
     assert "0.0 / 5 min" in displayed[0][1]
