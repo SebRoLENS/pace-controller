@@ -2,6 +2,10 @@
 
 All notable changes are documented here. The project follows semantic versioning.
 
+## [1.1.1] - 2026-10-05
+
+- Automated validated cross-platform maintenance release.
+
 ## [Unreleased]
 
 - Add independent manual long term leak measurements for cell and cylinder, with two-hour moving averages and separate Reset buttons.
