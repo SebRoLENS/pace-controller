@@ -45,7 +45,7 @@ Ethernet and RS-232 use the same SCPI control engine and the same safety checks.
 - Current pressure, target, positive and negative source, measured slew, valve effort, CONTROL/MEASURE state, in-limits state, and source margin.
 - Manual target control with Linear or Maximum slew mode.
 - Optional **Keep CONTROL at target**, disabled by default.
-- **Indenting**: target, 120-second hold, return to zero, final MEASURE.
+- **Indenting**: separate compression/decompression slew rates, configurable hold (default 120 seconds), pause/edit/resume, return to zero, final MEASURE.
 - Editable JSON pressure routines with target, slew, dwell, and notes.
 - Protected pressurization parameters behind a padlock and danger confirmation.
 - Immediate sample-side and cylinder-side loss indicators using a rolling five-minute linear fit, with rates in bar/h and estimated CONTROL autonomy.

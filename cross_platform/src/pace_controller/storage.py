@@ -50,11 +50,7 @@ def load_settings() -> AppSettings:
         raw = json.loads(path.read_text(encoding="utf-8"))
         connection = _coerce_connection(dict(raw.get("connection", {})))
         leak_raw = dict(raw.get("leak_thresholds", {}))
-        leak_allowed = LeakThresholds.__dataclass_fields__
-        leak = LeakThresholds(
-            **{key: value for key, value in leak_raw.items() if key in leak_allowed}
-        )
-        leak.validate()
+        leak = LeakThresholds.from_dict(leak_raw)
         return AppSettings(
             language=str(raw.get("language", "en")),
             connection=connection,

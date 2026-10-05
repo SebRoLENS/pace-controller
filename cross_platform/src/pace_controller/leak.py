@@ -6,7 +6,7 @@ from collections import deque
 from dataclasses import dataclass
 from itertools import islice
 from statistics import median
-from math import fsum, inf, isfinite
+from math import fsum, inf, isclose, isfinite
 
 from .models import LeakThresholds
 
@@ -95,21 +95,20 @@ class LeakMonitor:
         rate = max(0.0, -slope)
 
         t = self.thresholds
-        green_rate = t.reference_drop_bar / t.green_minutes
-        yellow_rate = t.reference_drop_bar / t.yellow_minutes
-        orange_rate = t.reference_drop_bar / t.orange_minutes
-
-        if rate > orange_rate:
-            return LeakAssessment("significant_leak", rate, elapsed_minutes)
-        if rate > yellow_rate:
-            return LeakAssessment("pressure_leak", rate, elapsed_minutes)
-        if rate > green_rate:
-            return LeakAssessment("slight_leak", rate, elapsed_minutes)
-        # Green confirmation uses total uninterrupted monitoring time, not
-        # window length: its configurable default is longer than the averaging window.
-        if (timestamp - self.started_at) / 60.0 >= t.green_minutes:
-            return LeakAssessment("no_leak", rate, elapsed_minutes)
-        return LeakAssessment("assessing", rate, elapsed_minutes)
+        rate_hour = rate * 60.0
+        # Normalize numerical roundoff at the inclusive colour boundaries.
+        for boundary in (t.green_max_bar_hour, t.yellow_max_bar_hour, t.orange_max_bar_hour):
+            if isclose(rate_hour, boundary, rel_tol=1e-9, abs_tol=1e-12):
+                rate_hour = boundary
+        if rate_hour > t.orange_max_bar_hour:
+            level = "significant_leak"
+        elif rate_hour >= t.yellow_max_bar_hour:
+            level = "pressure_leak"
+        elif rate_hour >= t.green_max_bar_hour:
+            level = "slight_leak"
+        else:
+            level = "no_leak"
+        return LeakAssessment(level, rate, elapsed_minutes)
 
     def _is_pressure_step(self, timestamp: float, value: float) -> bool:
         """Detect a discontinuity relative to recent drift and measurement noise."""

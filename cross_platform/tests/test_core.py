@@ -285,9 +285,9 @@ def test_windows_auto_network_waits_adds_route_and_restores(
     ("elapsed", "drop", "expected"),
     [
         (600.0, 0.001, "no_leak"),
-        (300.0, 0.004, "slight_leak"),
-        (180.0, 0.009, "pressure_leak"),
-        (180.0, 0.024, "significant_leak"),
+        (300.0, 0.0125, "slight_leak"),
+        (180.0, 0.0225, "pressure_leak"),
+        (180.0, 0.045, "significant_leak"),
     ],
 )
 def test_leak_classification(elapsed: float, drop: float, expected: str) -> None:
@@ -306,7 +306,7 @@ def test_leak_monitor_pauses_during_control() -> None:
 
 @pytest.mark.parametrize(
     ("rate", "expected"),
-    [(0.0008, "slight_leak"), (0.003, "pressure_leak"), (0.008, "significant_leak")],
+    [(0.0025, "slight_leak"), (0.0075, "pressure_leak"), (0.015, "significant_leak")],
 )
 def test_leak_rate_and_warnings_are_available_immediately(rate: float, expected: str) -> None:
     monitor = LeakMonitor(LeakThresholds())
@@ -330,7 +330,7 @@ def test_five_minute_average_excludes_old_loss_and_keeps_green_confirmation() ->
     assert monitor.samples[0][0] == 300.0
     monitor.add(601.0, 49.0, False)
     assert monitor.add(602.0, 49.0, True).level == "assessing"
-    assert monitor.add(603.0, 49.0, True).level == "assessing"
+    assert monitor.add(603.0, 49.0, True).level == "no_leak"
 
 
 def test_regression_interpolates_boundary_and_uses_irregular_timestamps() -> None:
