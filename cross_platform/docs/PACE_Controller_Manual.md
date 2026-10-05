@@ -320,6 +320,8 @@ The SETTINGS page permits editing the reference drop and green, yellow, and oran
 
 A pressure trend does not uniquely identify a physical leak. Thermal equilibration, regulator hysteresis, pressure-medium behaviour, and sensor noise can produce similar signals. Confirm warnings using an appropriate laboratory leak-test procedure.
 
+A large pressure discontinuity (for example a cylinder refill) restarts the short term history and the active long term history for that side from the new reading. The detector compares each pressure change with the median recent drift, using up to ten intervals. The deviation must exceed both 0.1 bar and eight times the recent median absolute rate deviation multiplied by the polling interval. Continuous large drift is retained rather than treated as a step. A reset is recorded in the on-screen log; the window counters return to zero. The other side and stopped long term results are unaffected.
+
 ### 13.4 Manual long term leak measurement
 
 Each side has its own **Measure long term leak**, **Reset**, and **Stop** buttons. Start this measurement when the system is stable. The additional result uses a linear fit over a rolling two-hour window, independently of the always-visible five-minute result and of the other side. During startup, it uses the available readings and displays the collected window duration out of 120 minutes.

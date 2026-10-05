@@ -498,3 +498,63 @@ def test_regression_uses_interior_readings_even_when_endpoints_match():
     for timestamp, pressure in [(0.0, 50.0), (60.0, 50.02), (120.0, 50.0), (180.0, 49.99), (240.0, 50.0)]:
         result = monitor.add(timestamp, pressure, True)
     assert result.rate_bar_min == pytest.approx(0.003)
+
+
+@pytest.mark.parametrize("jump", [5.0, -5.0])
+@pytest.mark.parametrize("window_minutes", [5.0, 120.0])
+def test_pressure_steps_restart_window_from_new_baseline(jump, window_minutes):
+    monitor = LeakMonitor(LeakThresholds(), window_minutes=window_minutes)
+    for timestamp in range(21):
+        monitor.add(float(timestamp), 50.0 - timestamp * 0.001, True)
+    result = monitor.add(21.0, 49.979 + jump, True)
+    assert result.history_reset
+    assert result.observation_minutes == 0.0
+    assert len(monitor.samples) == 1
+    next_result = monitor.add(22.0, 49.978 + jump, True)
+    assert not next_result.history_reset
+    assert next_result.rate_bar_min == pytest.approx(0.06)
+
+
+def test_large_continuous_drift_does_not_restart_the_regression():
+    monitor = LeakMonitor(LeakThresholds())
+    for timestamp in range(31):
+        result = monitor.add(float(timestamp), 50.0 - 0.2 * timestamp, True)
+        assert not result.history_reset
+    assert result.observation_minutes == 0.5
+    assert result.rate_bar_min == pytest.approx(12.0)
+
+
+def test_cylinder_refill_resets_only_its_active_short_and_long_measurements(monkeypatch, tmp_path):
+    import os
+    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+    from PySide6.QtWidgets import QApplication
+    from pace_controller.models import AppSettings, Telemetry
+    from pace_controller.service import PaceService
+    from pace_controller.ui import MainWindow
+    monkeypatch.setenv("PACE_CONTROLLER_DATA_DIR", str(tmp_path))
+    monkeypatch.setattr(PaceService, "start", lambda self: None)
+    monkeypatch.setattr(PaceService, "shutdown", lambda self: None)
+    app = QApplication.instance() or QApplication([])
+    window = MainWindow(PaceService(), AppSettings())
+    try:
+        window.on_connection_changed(True, {"key": "connected"})
+        window.start_long_term_leak("sample")
+        window.start_long_term_leak("inlet")
+        for timestamp in range(21):
+            window.on_telemetry(Telemetry(timestamp=float(timestamp), current_pressure_bar=10.0, positive_source_bar=50.0))
+        window.on_telemetry(Telemetry(timestamp=21.0, current_pressure_bar=10.0, positive_source_bar=60.0))
+        assert window.inlet_assessment.history_reset
+        assert window.inlet_assessment.observation_minutes == 0.0
+        assert window.long_term_assessments["inlet"].observation_minutes == 0.0
+        assert window.sample_assessment.observation_minutes == pytest.approx(21.0 / 60.0)
+        assert window.long_term_assessments["sample"].observation_minutes == pytest.approx(21.0 / 60.0)
+        assert "0.0 / 120 min" in window.inlet_leak.long_term_value.text()
+        assert window.long_term_active == {"sample", "inlet"}
+        window.on_telemetry(Telemetry(timestamp=22.0, current_pressure_bar=11.0, positive_source_bar=60.0))
+        assert window.sample_assessment.history_reset
+        assert window.long_term_assessments["sample"].observation_minutes == 0.0
+        assert window.inlet_assessment.observation_minutes > 0.0
+        assert window.long_term_assessments["inlet"].observation_minutes > 0.0
+    finally:
+        window.close()
+        app.processEvents()

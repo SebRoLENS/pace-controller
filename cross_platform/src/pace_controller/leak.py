@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from collections import deque
 from dataclasses import dataclass
+from itertools import islice
+from statistics import median
 from math import fsum, inf, isfinite
 
 from .models import LeakThresholds
@@ -29,6 +31,7 @@ class LeakAssessment:
     level: str
     rate_bar_min: float = 0.0
     observation_minutes: float = 0.0
+    history_reset: bool = False
 
 
 class LeakMonitor:
@@ -59,6 +62,9 @@ class LeakMonitor:
             return LeakAssessment("assessing")
         if self.samples and timestamp <= self.samples[-1][0]:
             return LeakAssessment("assessing")
+        history_reset = self._is_pressure_step(timestamp, value)
+        if history_reset:
+            self.reset()
         if self.started_at is None:
             self.started_at = timestamp
         self.samples.append((timestamp, value))
@@ -68,7 +74,7 @@ class LeakMonitor:
         while len(self.samples) > 1 and self.samples[1][0] <= cutoff:
             self.samples.popleft()
         if len(self.samples) < 2:
-            return LeakAssessment("assessing")
+            return LeakAssessment("assessing", history_reset=history_reset)
 
         start, start_value = self.samples[0]
         if start < cutoff:
@@ -104,3 +110,19 @@ class LeakMonitor:
         if (timestamp - self.started_at) / 60.0 >= t.green_minutes:
             return LeakAssessment("no_leak", rate, elapsed_minutes)
         return LeakAssessment("assessing", rate, elapsed_minutes)
+
+    def _is_pressure_step(self, timestamp: float, value: float) -> bool:
+        """Detect a discontinuity relative to recent drift and measurement noise."""
+        if len(self.samples) < 3:
+            return False
+        recent = list(islice(reversed(self.samples), 11))
+        recent.reverse()
+        rates = [(p2 - p1) / (t2 - t1) for (t1, p1), (t2, p2) in zip(recent, recent[1:])]
+        drift = median(rates)
+        noise = median(abs(rate - drift) for rate in rates)
+        previous_time, previous_value = recent[-1]
+        interval = timestamp - previous_time
+        departure = abs(value - previous_value - drift * interval)
+        # A 0.1 bar floor avoids reacting to small fluctuations. Scale the
+        # threshold to recent rate variability and actual polling duration.
+        return departure > max(0.1, 8.0 * noise * interval) + 1e-9
