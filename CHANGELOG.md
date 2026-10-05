@@ -2,6 +2,10 @@
 
 All notable changes are documented here. The project follows semantic versioning.
 
+## [1.1.2] - 2026-10-05
+
+- Automated validated cross-platform maintenance release.
+
 ## [Unreleased]
 
 - Add independent Stop buttons for long term measurements, keeping the last result visible until a new measurement starts.
