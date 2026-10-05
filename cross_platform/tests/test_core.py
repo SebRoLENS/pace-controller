@@ -304,16 +304,150 @@ def test_leak_monitor_pauses_during_control() -> None:
     assert not monitor.samples
 
 
-def test_leak_rate_is_hidden_until_three_minutes_are_averaged() -> None:
+@pytest.mark.parametrize(
+    ("rate", "expected"),
+    [(0.0008, "slight_leak"), (0.003, "pressure_leak"), (0.008, "significant_leak")],
+)
+def test_leak_rate_and_warnings_are_available_immediately(rate: float, expected: str) -> None:
+    monitor = LeakMonitor(LeakThresholds())
+    first = monitor.add(0.0, 50.0, True)
+    assert first.observation_minutes == 0.0
+    early = monitor.add(1.0, 50.0 - rate / 60.0, True)
+    assert early.level == expected
+    assert early.observation_minutes == pytest.approx(1.0 / 60.0)
+    assert early.rate_bar_min == pytest.approx(rate)
+
+
+def test_five_minute_average_excludes_old_loss_and_keeps_green_confirmation() -> None:
     monitor = LeakMonitor(LeakThresholds())
     monitor.add(0.0, 50.0, True)
-    early = monitor.add(179.0, 49.0, True)
-    ready = monitor.add(180.0, 49.0, True)
-    assert early.level == "assessing"
-    assert early.observation_minutes == 0.0
-    assert ready.observation_minutes == pytest.approx(3.0)
-    assert ready.rate_bar_min > 0
+    monitor.add(60.0, 49.0, True)
+    for timestamp in range(120, 601, 60):
+        result = monitor.add(float(timestamp), 49.0, True)
+    assert result.rate_bar_min == 0.0
+    assert result.observation_minutes == 5.0
+    assert result.level == "no_leak"
+    assert monitor.samples[0][0] == 300.0
+    monitor.add(601.0, 49.0, False)
+    assert monitor.add(602.0, 49.0, True).level == "assessing"
+    assert monitor.add(603.0, 49.0, True).level == "assessing"
+
+
+def test_average_interpolates_boundary_and_weights_irregular_intervals() -> None:
+    monitor = LeakMonitor(LeakThresholds())
+    for timestamp, value in [(0.0, 50.0), (100.0, 49.0), (200.0, 49.0)]:
+        monitor.add(timestamp, value, True)
+    result = monitor.add(350.0, 48.0, True)
+    # Boundary at 50 seconds: pressure 49.5, net loss 1.5 bar over 5 min.
+    assert result.observation_minutes == 5.0
+    assert result.rate_bar_min == pytest.approx(0.3)
+
+
+def test_average_does_not_count_oscillating_noise_as_loss() -> None:
+    monitor = LeakMonitor(LeakThresholds())
+    monitor.add(0.0, 50.0, True)
+    monitor.add(1.0, 49.0, True)
+    result = monitor.add(3.0, 50.0, True)
+    assert result.rate_bar_min == 0.0
+
+
+def test_invalid_or_repeated_timestamps_do_not_corrupt_average() -> None:
+    monitor = LeakMonitor(LeakThresholds())
+    monitor.add(0.0, 50.0, True)
+    for timestamp, value in [(float("nan"), 49.0), (1.0, float("nan")), (0.0, 40.0)]:
+        assert monitor.add(timestamp, value, True).level == "assessing"
+    result = monitor.add(60.0, 49.0, True)
+    assert result.rate_bar_min == pytest.approx(1.0)
+
+
+def test_ui_shows_early_loss_rate_and_autonomy() -> None:
+    from types import SimpleNamespace
+
+    from pace_controller.i18n import Translator
+    from pace_controller.leak import LeakAssessment
+    from pace_controller.ui import MainWindow
+
+    displayed = []
+    card = SimpleNamespace(set_level=lambda level, text: displayed.append((level, text)))
+    window = SimpleNamespace(t=Translator("en"))
+    MainWindow._apply_leak(
+        window, card, LeakAssessment("pressure_leak", 0.003, 1.0 / 60.0), 10.0
+    )
+    assert displayed[0][0] == "pressure_leak"
+    assert "0.180 bar/h" in displayed[0][1]
+    assert "10.0 h" in displayed[0][1]
+    MainWindow._apply_leak(window, card, LeakAssessment("paused_control"))
+    assert "bar/h" not in displayed[1][1]
 
 
 def test_control_autonomy_uses_source_to_sample_pressure_headroom() -> None:
     assert control_autonomy_hours(50.0, 40.0, 1.0 / 60.0) == pytest.approx(10.0)
+
+
+@pytest.mark.parametrize("window_minutes", [0.0, -1.0, float("nan"), float("inf")])
+def test_invalid_averaging_windows_are_rejected(window_minutes: float) -> None:
+    with pytest.raises(ValueError):
+        LeakMonitor(LeakThresholds(), window_minutes)
+
+
+def test_two_hour_window_is_independent_of_short_term_and_reset() -> None:
+    short = LeakMonitor(LeakThresholds())
+    long = LeakMonitor(LeakThresholds(), window_minutes=120.0)
+    for timestamp in range(0, 7801, 60):
+        pressure = 50.0 - 0.01 * min(timestamp / 60.0, 60.0)
+        short_result = short.add(float(timestamp), pressure, True)
+        long_result = long.add(float(timestamp), pressure, True)
+    assert short_result.rate_bar_min == 0.0
+    assert long_result.observation_minutes == 120.0
+    assert long_result.rate_bar_min == pytest.approx(0.5 / 120.0)
+    assert long.samples[0][0] == 600.0
+    short_history = list(short.samples)
+    long.reset()
+    assert not long.samples
+    assert list(short.samples) == short_history
+    assert long.add(7801.0, 49.4, True).observation_minutes == 0.0
+
+
+def test_long_term_buttons_start_and_reset_each_side_independently(monkeypatch, tmp_path) -> None:
+    import os
+
+    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+    from PySide6.QtWidgets import QApplication
+    from pace_controller.models import AppSettings, Telemetry
+    from pace_controller.service import PaceService
+    from pace_controller.ui import MainWindow
+
+    monkeypatch.setenv("PACE_CONTROLLER_DATA_DIR", str(tmp_path))
+    monkeypatch.setattr(PaceService, "start", lambda self: None)
+    monkeypatch.setattr(PaceService, "shutdown", lambda self: None)
+    app = QApplication.instance() or QApplication([])
+    window = MainWindow(PaceService(), AppSettings())
+    try:
+        window.on_connection_changed(True, {"key": "connected"})
+        window.on_telemetry(Telemetry(timestamp=0.0, current_pressure_bar=10.0, positive_source_bar=50.0))
+        window.sample_leak.long_term_button.click()
+        assert window.long_term_active == {"sample"}
+        assert not window.inlet_leak.long_term_reset.isEnabled()
+        window.inlet_leak.long_term_button.click()
+        for timestamp in (1.0, 61.0):
+            window.on_telemetry(Telemetry(timestamp=timestamp, current_pressure_bar=10.0 - timestamp * 0.001, positive_source_bar=50.0 - timestamp * 0.002))
+        assert "bar/h" in window.sample_leak.long_term_value.text()
+        assert "bar/h" in window.inlet_leak.long_term_value.text()
+        inlet_history = list(window.long_term_monitors["inlet"].samples)
+        short_history = list(window.sample_monitor.samples)
+        window.sample_leak.long_term_reset.click()
+        assert not window.long_term_monitors["sample"].samples
+        assert window.long_term_assessments["sample"].observation_minutes == 0.0
+        assert list(window.long_term_monitors["inlet"].samples) == inlet_history
+        assert list(window.sample_monitor.samples) == short_history
+        window.on_telemetry(Telemetry(timestamp=62.0, current_pressure_bar=9.9, positive_source_bar=49.8))
+        assert len(window.long_term_monitors["sample"].samples) == 1
+        window.on_telemetry(Telemetry(timestamp=63.0, current_pressure_bar=9.9, positive_source_bar=49.8, control=True, in_limits=False))
+        assert not window.long_term_monitors["sample"].samples
+        assert not window.long_term_monitors["inlet"].samples
+        window.on_connection_changed(False, {"key": "disconnected"})
+        assert not window.long_term_active
+        assert not window.sample_leak.long_term_button.isEnabled()
+    finally:
+        window.close()
+        app.processEvents()

@@ -48,7 +48,8 @@ Ethernet and RS-232 use the same SCPI control engine and the same safety checks.
 - **Indenting**: target, 120-second hold, return to zero, final MEASURE.
 - Editable JSON pressure routines with target, slew, dwell, and notes.
 - Protected pressurization parameters behind a padlock and danger confirmation.
-- Stable sample-side and cylinder-side loss indicators based on at least three minutes of data, with rates in bar/h and estimated CONTROL autonomy.
+- Immediate sample-side and cylinder-side loss indicators using a five-minute moving average, with rates in bar/h and estimated CONTROL autonomy.
+- Independent manual long term leak measurements for sample and cylinder, using two-hour moving averages and separate Reset buttons.
 - CSV telemetry and diagnostic logs at full received precision.
 - Offline simulator for hardware-free validation.
 - Bilingual Help menu with author/affiliation acknowledgements and a direct
