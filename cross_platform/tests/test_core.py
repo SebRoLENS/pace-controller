@@ -333,14 +333,14 @@ def test_five_minute_average_excludes_old_loss_and_keeps_green_confirmation() ->
     assert monitor.add(603.0, 49.0, True).level == "assessing"
 
 
-def test_average_interpolates_boundary_and_weights_irregular_intervals() -> None:
+def test_regression_interpolates_boundary_and_uses_irregular_timestamps() -> None:
     monitor = LeakMonitor(LeakThresholds())
     for timestamp, value in [(0.0, 50.0), (100.0, 49.0), (200.0, 49.0)]:
         monitor.add(timestamp, value, True)
     result = monitor.add(350.0, 48.0, True)
-    # Boundary at 50 seconds: pressure 49.5, net loss 1.5 bar over 5 min.
+    # Fit (50,49.5), (100,49), (200,49), (350,48): loss slope = 19/70 bar/min.
     assert result.observation_minutes == 5.0
-    assert result.rate_bar_min == pytest.approx(0.3)
+    assert result.rate_bar_min == pytest.approx(19.0 / 70.0)
 
 
 def test_average_does_not_count_oscillating_noise_as_loss() -> None:
@@ -403,7 +403,7 @@ def test_two_hour_window_is_independent_of_short_term_and_reset() -> None:
         long_result = long.add(float(timestamp), pressure, True)
     assert short_result.rate_bar_min == 0.0
     assert long_result.observation_minutes == 120.0
-    assert long_result.rate_bar_min == pytest.approx(0.5 / 120.0)
+    assert long_result.rate_bar_min == pytest.approx(2227.0 / 590480.0)
     assert long.samples[0][0] == 600.0
     short_history = list(short.samples)
     long.reset()
@@ -468,6 +468,93 @@ def test_long_term_buttons_start_and_reset_each_side_independently(monkeypatch, 
         window.on_connection_changed(False, {"key": "disconnected"})
         assert not window.long_term_active
         assert not window.sample_leak.long_term_button.isEnabled()
+    finally:
+        window.close()
+        app.processEvents()
+
+
+@pytest.mark.parametrize("window_minutes", [5.0, 120.0])
+def test_linear_fit_recovers_loss_with_irregular_polling_and_epoch_timestamps(window_minutes):
+    monitor = LeakMonitor(LeakThresholds(), window_minutes=window_minutes)
+    origin = 1_800_000_000.0
+    for offset in [0.0, 1.0, 9.0, 70.0, 150.0, 290.0, 350.0]:
+        result = monitor.add(origin + offset, 50.0 - 0.003 * offset / 60.0, True)
+    assert result.rate_bar_min == pytest.approx(0.003)
+    assert result.observation_minutes == pytest.approx(min(350.0 / 60.0, window_minutes))
+
+
+def test_regression_reduces_endpoint_noise_with_all_window_readings():
+    monitor = LeakMonitor(LeakThresholds())
+    for timestamp in range(301):
+        pressure = 50.1 if timestamp == 0 else 49.9 if timestamp == 300 else 50.0
+        result = monitor.add(float(timestamp), pressure, True)
+    endpoint_rate = (50.1 - 49.9) / 5.0
+    assert result.rate_bar_min < endpoint_rate / 10.0
+    assert result.rate_bar_min == pytest.approx(1800.0 / 2272550.0)
+
+
+def test_regression_uses_interior_readings_even_when_endpoints_match():
+    monitor = LeakMonitor(LeakThresholds())
+    for timestamp, pressure in [(0.0, 50.0), (60.0, 50.02), (120.0, 50.0), (180.0, 49.99), (240.0, 50.0)]:
+        result = monitor.add(timestamp, pressure, True)
+    assert result.rate_bar_min == pytest.approx(0.003)
+
+
+@pytest.mark.parametrize("jump", [5.0, -5.0])
+@pytest.mark.parametrize("window_minutes", [5.0, 120.0])
+def test_pressure_steps_restart_window_from_new_baseline(jump, window_minutes):
+    monitor = LeakMonitor(LeakThresholds(), window_minutes=window_minutes)
+    for timestamp in range(21):
+        monitor.add(float(timestamp), 50.0 - timestamp * 0.001, True)
+    result = monitor.add(21.0, 49.979 + jump, True)
+    assert result.history_reset
+    assert result.observation_minutes == 0.0
+    assert len(monitor.samples) == 1
+    next_result = monitor.add(22.0, 49.978 + jump, True)
+    assert not next_result.history_reset
+    assert next_result.rate_bar_min == pytest.approx(0.06)
+
+
+def test_large_continuous_drift_does_not_restart_the_regression():
+    monitor = LeakMonitor(LeakThresholds())
+    for timestamp in range(31):
+        result = monitor.add(float(timestamp), 50.0 - 0.2 * timestamp, True)
+        assert not result.history_reset
+    assert result.observation_minutes == 0.5
+    assert result.rate_bar_min == pytest.approx(12.0)
+
+
+def test_cylinder_refill_resets_only_its_active_short_and_long_measurements(monkeypatch, tmp_path):
+    import os
+    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+    from PySide6.QtWidgets import QApplication
+    from pace_controller.models import AppSettings, Telemetry
+    from pace_controller.service import PaceService
+    from pace_controller.ui import MainWindow
+    monkeypatch.setenv("PACE_CONTROLLER_DATA_DIR", str(tmp_path))
+    monkeypatch.setattr(PaceService, "start", lambda self: None)
+    monkeypatch.setattr(PaceService, "shutdown", lambda self: None)
+    app = QApplication.instance() or QApplication([])
+    window = MainWindow(PaceService(), AppSettings())
+    try:
+        window.on_connection_changed(True, {"key": "connected"})
+        window.start_long_term_leak("sample")
+        window.start_long_term_leak("inlet")
+        for timestamp in range(21):
+            window.on_telemetry(Telemetry(timestamp=float(timestamp), current_pressure_bar=10.0, positive_source_bar=50.0))
+        window.on_telemetry(Telemetry(timestamp=21.0, current_pressure_bar=10.0, positive_source_bar=60.0))
+        assert window.inlet_assessment.history_reset
+        assert window.inlet_assessment.observation_minutes == 0.0
+        assert window.long_term_assessments["inlet"].observation_minutes == 0.0
+        assert window.sample_assessment.observation_minutes == pytest.approx(21.0 / 60.0)
+        assert window.long_term_assessments["sample"].observation_minutes == pytest.approx(21.0 / 60.0)
+        assert "0.0 / 120 min" in window.inlet_leak.long_term_value.text()
+        assert window.long_term_active == {"sample", "inlet"}
+        window.on_telemetry(Telemetry(timestamp=22.0, current_pressure_bar=11.0, positive_source_bar=60.0))
+        assert window.sample_assessment.history_reset
+        assert window.long_term_assessments["sample"].observation_minutes == 0.0
+        assert window.inlet_assessment.observation_minutes > 0.0
+        assert window.long_term_assessments["inlet"].observation_minutes > 0.0
     finally:
         window.close()
         app.processEvents()

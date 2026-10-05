@@ -10,6 +10,8 @@ All notable changes are documented here. The project follows semantic versioning
 
 - Add independent Stop buttons for long term measurements, keeping the last result visible until a new measurement starts.
 - Display available short term averaging history out of five minutes and long term history from 0 / 120 min.
+- Estimate short term and long term pressure-loss rates using linear least-squares fits over all readings in their rolling windows, instead of endpoint differences.
+- Restart the affected side's short term and active long term regression windows after large pressure steps, such as cylinder refills, while retaining continuous drift.
 
 ## [1.1.1] - 2026-10-05
 

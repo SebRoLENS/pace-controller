@@ -1127,6 +1127,9 @@ class MainWindow(QMainWindow):
         self.sample_assessment = self.sample_monitor.add(
             telemetry.timestamp, telemetry.current_pressure_bar, not telemetry.control and not self.busy
         )
+        if self.sample_assessment.history_reset:
+            self.long_term_monitors["sample"].reset()
+            self.log_view.append(self.t("leak_step_reset", side=self.t("sample_leak_title")))
         # Source consumption is meaningful in steady CONTROL and a static source
         # leak is meaningful in MEASURE. Reset while a CONTROL target is moving.
         source_state = (
@@ -1144,6 +1147,9 @@ class MainWindow(QMainWindow):
         self.inlet_assessment = self.inlet_monitor.add(
             telemetry.timestamp, telemetry.positive_source_bar, source_stable
         )
+        if self.inlet_assessment.history_reset:
+            self.long_term_monitors["inlet"].reset()
+            self.log_view.append(self.t("leak_step_reset", side=self.t("inlet_leak_title")))
         for side, pressure, enabled in (
             ("sample", telemetry.current_pressure_bar, not telemetry.control and not self.busy),
             ("inlet", telemetry.positive_source_bar, source_stable),
