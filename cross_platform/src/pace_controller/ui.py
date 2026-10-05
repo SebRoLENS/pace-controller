@@ -85,11 +85,6 @@ REPOSITORY_URL = "https://github.com/SebRoLENS/pace-controller"
 ISSUES_URL = f"{REPOSITORY_URL}/issues"
 
 
-def assessment_rate_minimum_minutes() -> float:
-    """Minimum regression span used by every UI leak monitor."""
-    return 3.0
-
-
 class LockButton(QToolButton):
     def __init__(self) -> None:
         super().__init__()
@@ -168,6 +163,17 @@ class LeakCard(QFrame):
         self.value.setFont(font)
         layout.addWidget(self.title)
         layout.addWidget(self.value)
+        controls = QHBoxLayout()
+        self.long_term_button = QPushButton()
+        self.long_term_reset = QPushButton()
+        controls.addWidget(self.long_term_button, 1)
+        controls.addWidget(self.long_term_reset)
+        layout.addLayout(controls)
+        self.long_term_value = QLabel()
+        self.long_term_value.setAlignment(Qt.AlignCenter)
+        self.long_term_value.setWordWrap(True)
+        self.long_term_value.hide()
+        layout.addWidget(self.long_term_value)
         self.set_level("assessing", "ASSESSING")
 
     def set_level(self, level: str, text: str) -> None:
@@ -234,12 +240,19 @@ class MainWindow(QMainWindow):
         self.parameters_unlocked = False
         self.current_telemetry = Telemetry()
         self.capabilities = DeviceCapabilities()
-        minimum_minutes = assessment_rate_minimum_minutes()
-        self.sample_monitor = LeakMonitor(settings.leak_thresholds, minimum_minutes)
-        self.inlet_monitor = LeakMonitor(settings.leak_thresholds, minimum_minutes)
+        self.sample_monitor = LeakMonitor(settings.leak_thresholds)
+        self.inlet_monitor = LeakMonitor(settings.leak_thresholds)
         self.sample_assessment = LeakAssessment("assessing")
         self.inlet_assessment = LeakAssessment("assessing")
         self.source_monitoring_state: str | None = None
+        self.long_term_monitors = {
+            side: LeakMonitor(settings.leak_thresholds, window_minutes=120.0)
+            for side in ("sample", "inlet")
+        }
+        self.long_term_active: set[str] = set()
+        self.long_term_assessments = {
+            side: LeakAssessment("assessing") for side in self.long_term_monitors
+        }
         self._localized: list[tuple[object, str]] = []
 
         self.setObjectName("mainWindow")
@@ -421,6 +434,14 @@ class MainWindow(QMainWindow):
         leak_layout.setSpacing(8)
         self.sample_leak = LeakCard("sample_leak_title")
         self.inlet_leak = LeakCard("inlet_leak_title")
+        self.leak_cards = {"sample": self.sample_leak, "inlet": self.inlet_leak}
+        for side, card in self.leak_cards.items():
+            card.long_term_button.clicked.connect(
+                lambda checked=False, side=side: self.start_long_term_leak(side)
+            )
+            card.long_term_reset.clicked.connect(
+                lambda checked=False, side=side: self.start_long_term_leak(side)
+            )
         leak_layout.addWidget(self.sample_leak, 1)
         leak_layout.addWidget(self.inlet_leak, 1)
         root.addLayout(leak_layout)
@@ -886,6 +907,10 @@ class MainWindow(QMainWindow):
         self.transport_stack.setEnabled(not connected)
         self.module_combo.setEnabled(not connected)
         if not connected:
+            self.long_term_active.clear()
+            for side, monitor in self.long_term_monitors.items():
+                monitor.reset()
+                self.long_term_assessments[side] = LeakAssessment("assessing")
             self.sample_monitor.reset()
             self.inlet_monitor.reset()
             self.sample_assessment = LeakAssessment("assessing")
@@ -894,6 +919,8 @@ class MainWindow(QMainWindow):
             self._refresh_leak_texts()
             self.parameters_unlocked = False
             self._set_parameter_lock_ui()
+
+        self._refresh_long_term_leaks()
 
     def set_busy(self, busy: bool) -> None:
         self.busy = busy
@@ -1104,11 +1131,21 @@ class MainWindow(QMainWindow):
         )
         if source_state != self.source_monitoring_state:
             self.inlet_monitor.reset()
+            self.long_term_monitors["inlet"].reset()
             self.source_monitoring_state = source_state
         source_stable = source_state != "moving"
         self.inlet_assessment = self.inlet_monitor.add(
             telemetry.timestamp, telemetry.positive_source_bar, source_stable
         )
+        for side, pressure, enabled in (
+            ("sample", telemetry.current_pressure_bar, not telemetry.control and not self.busy),
+            ("inlet", telemetry.positive_source_bar, source_stable),
+        ):
+            if side in self.long_term_active:
+                self.long_term_assessments[side] = self.long_term_monitors[side].add(
+                    telemetry.timestamp, pressure, enabled
+                )
+        self._refresh_long_term_leaks()
         self._apply_leak(self.sample_leak, self.sample_assessment)
         self._apply_leak(
             self.inlet_leak,
@@ -1191,6 +1228,10 @@ class MainWindow(QMainWindow):
             self.settings.leak_thresholds = thresholds
             self.sample_monitor.update_thresholds(thresholds)
             self.inlet_monitor.update_thresholds(thresholds)
+            for side, monitor in self.long_term_monitors.items():
+                monitor.update_thresholds(thresholds)
+                self.long_term_assessments[side] = LeakAssessment("assessing")
+            self._refresh_long_term_leaks()
             save_settings(self.settings)
             self.log_view.append(self.t("settings_saved"))
         except ValueError as exc:
@@ -1215,7 +1256,7 @@ class MainWindow(QMainWindow):
         autonomy_hours: float | None = None,
     ) -> None:
         lines = [self.t(assessment.level)]
-        if assessment.observation_minutes >= assessment_rate_minimum_minutes():
+        if assessment.observation_minutes > 0:
             lines.append(self.t("loss_rate_hour", rate=assessment.rate_bar_min * 60.0))
             if autonomy_hours is not None:
                 lines.append(
@@ -1244,6 +1285,35 @@ class MainWindow(QMainWindow):
             self.inlet_assessment,
             self._control_autonomy_hours(self.inlet_assessment, self.current_telemetry),
         )
+        self._refresh_long_term_leaks()
+
+    def start_long_term_leak(self, side: str) -> None:
+        """Start or reinitialize only the selected side's manual two-hour average."""
+        self.long_term_monitors[side].reset()
+        self.long_term_active.add(side)
+        self.long_term_assessments[side] = LeakAssessment("assessing")
+        self._refresh_long_term_leaks()
+
+    def _refresh_long_term_leaks(self) -> None:
+        for side, card in self.leak_cards.items():
+            active = side in self.long_term_active
+            card.long_term_button.setText(self.t("long_term_start"))
+            card.long_term_button.setToolTip(self.t("long_term_hint"))
+            card.long_term_reset.setText(self.t("long_term_reset"))
+            card.long_term_reset.setToolTip(self.t("long_term_reset_hint"))
+            card.long_term_button.setEnabled(self.connected and not active)
+            card.long_term_reset.setEnabled(self.connected and active)
+            card.long_term_value.setVisible(active)
+            if not active:
+                continue
+            assessment = self.long_term_assessments[side]
+            lines = [self.t("long_term_status", status=self.t(assessment.level))]
+            if assessment.observation_minutes > 0:
+                lines.append(self.t("loss_rate_hour", rate=assessment.rate_bar_min * 60.0))
+                lines.append(self.t("long_term_window", minutes=assessment.observation_minutes))
+            card.long_term_value.setText("\n".join(lines))
+            foreground = LeakCard.COLORS.get(assessment.level, LeakCard.COLORS["assessing"])[1]
+            card.long_term_value.setStyleSheet(f"color: {foreground};")
 
     def _set_if_finite(self, edit: QLineEdit, value: object) -> None:
         try:

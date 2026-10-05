@@ -32,17 +32,19 @@ class LeakAssessment:
 
 
 class LeakMonitor:
-    def __init__(
-        self, thresholds: LeakThresholds, minimum_observation_minutes: float = 3.0
-    ) -> None:
+    """Display loss immediately, averaging signed rates over a configurable rolling window."""
+
+    def __init__(self, thresholds: LeakThresholds, window_minutes: float = 5.0) -> None:
+        if not isfinite(window_minutes) or window_minutes <= 0:
+            raise ValueError("Averaging window must be finite and positive")
+        self.window_seconds = window_minutes * 60.0
         self.thresholds = thresholds
-        if minimum_observation_minutes <= 0:
-            raise ValueError("Minimum observation time must be positive")
-        self.minimum_observation_minutes = minimum_observation_minutes
         self.samples: deque[tuple[float, float]] = deque()
+        self.started_at: float | None = None
 
     def reset(self) -> None:
         self.samples.clear()
+        self.started_at = None
 
     def update_thresholds(self, thresholds: LeakThresholds) -> None:
         thresholds.validate()
@@ -53,21 +55,32 @@ class LeakMonitor:
         if not enabled:
             self.reset()
             return LeakAssessment("paused_control")
-        if not isfinite(value):
+        if not (isfinite(timestamp) and isfinite(value)):
             return LeakAssessment("assessing")
+        if self.samples and timestamp <= self.samples[-1][0]:
+            return LeakAssessment("assessing")
+        if self.started_at is None:
+            self.started_at = timestamp
         self.samples.append((timestamp, value))
-        window_seconds = self.thresholds.green_minutes * 60.0
-        while self.samples and timestamp - self.samples[0][0] > window_seconds:
+        cutoff = timestamp - self.window_seconds
+        # Keep one point at/before the boundary for interpolation when polling
+        # times do not land exactly on the rolling-window cutoff.
+        while len(self.samples) > 1 and self.samples[1][0] <= cutoff:
             self.samples.popleft()
         if len(self.samples) < 2:
             return LeakAssessment("assessing")
 
-        elapsed_minutes = (self.samples[-1][0] - self.samples[0][0]) / 60.0
-        if elapsed_minutes <= 0:
-            return LeakAssessment("assessing")
-        rate = max(0.0, -self._linear_slope_bar_min())
-        if elapsed_minutes < self.minimum_observation_minutes:
-            return LeakAssessment("assessing")
+        start, start_value = self.samples[0]
+        if start < cutoff:
+            next_time, next_value = self.samples[1]
+            fraction = (cutoff - start) / (next_time - start)
+            start_value += fraction * (next_value - start_value)
+            start = cutoff
+        elapsed_minutes = (timestamp - start) / 60.0
+        # Time-weighted mean of successive signed pressure-loss rates:
+        # sum(rate_i * dt_i) / sum(dt_i) = net pressure drop / duration.
+        # Clip only the final mean, so noise/increases do not create false loss.
+        rate = max(0.0, (start_value - value) / elapsed_minutes)
 
         t = self.thresholds
         green_rate = t.reference_drop_bar / t.green_minutes
@@ -76,22 +89,12 @@ class LeakMonitor:
 
         if rate > orange_rate:
             return LeakAssessment("significant_leak", rate, elapsed_minutes)
-        if elapsed_minutes >= t.orange_minutes and rate > yellow_rate:
+        if rate > yellow_rate:
             return LeakAssessment("pressure_leak", rate, elapsed_minutes)
-        if elapsed_minutes >= t.yellow_minutes and rate > green_rate:
+        if rate > green_rate:
             return LeakAssessment("slight_leak", rate, elapsed_minutes)
-        if elapsed_minutes >= t.green_minutes and rate <= green_rate:
+        # Green confirmation uses total uninterrupted monitoring time, not
+        # window length: its configurable default is longer than the averaging window.
+        if (timestamp - self.started_at) / 60.0 >= t.green_minutes:
             return LeakAssessment("no_leak", rate, elapsed_minutes)
         return LeakAssessment("assessing", rate, elapsed_minutes)
-
-    def _linear_slope_bar_min(self) -> float:
-        origin = self.samples[0][0]
-        xs = [(stamp - origin) / 60.0 for stamp, _ in self.samples]
-        ys = [value for _, value in self.samples]
-        count = len(xs)
-        mean_x = sum(xs) / count
-        mean_y = sum(ys) / count
-        denominator = sum((x - mean_x) ** 2 for x in xs)
-        if denominator == 0:
-            return 0.0
-        return sum((x - mean_x) * (y - mean_y) for x, y in zip(xs, ys)) / denominator

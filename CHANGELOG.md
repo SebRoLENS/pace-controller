@@ -2,6 +2,14 @@
 
 All notable changes are documented here. The project follows semantic versioning.
 
+## [Unreleased]
+
+- Add independent manual long term leak measurements for cell and cylinder, with two-hour moving averages and separate Reset buttons.
+
+- Show pressure-loss rates and leak warnings from the first two valid readings, without the three-minute delay.
+- Use a time-weighted five-minute moving average, including available startup history, for both loss indicators and CONTROL autonomy.
+- Keep green confirmation tied to uninterrupted monitoring time, independently of the averaging window.
+
 ## [1.1.0] - 2026-09-07
 
 - Stabilized sample-side and cylinder-side pressure-loss estimates by requiring at least three minutes of regression history before displaying a rate.

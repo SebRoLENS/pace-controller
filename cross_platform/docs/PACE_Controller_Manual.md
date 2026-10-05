@@ -303,22 +303,28 @@ Only decreases are considered pressure losses. Increases are clipped to zero los
 
 ### 13.2 Operating condition
 
-Sample-side history is collected in MEASURE with no active automation. Cylinder/positive-source history is collected both in MEASURE and during steady, in-limits CONTROL, but is reset while the target is moving. No rate is shown until at least three minutes of data have been averaged by regression, avoiding unstable instantaneous estimates.
+Sample-side history is collected in MEASURE with no active automation. Cylinder/positive-source history is collected both in MEASURE and during steady, in-limits CONTROL, but is reset while the target is moving. The loss rate is shown as soon as two valid readings at different times are available; there is no three-minute waiting period.
 
 ### 13.3 Calculation and default classes
 
-A linear least-squares slope is calculated over the rolling history. The fitted loss rate is displayed in bar/h. During steady CONTROL, cylinder autonomy is estimated as $(P_{source,+} - P_{sample}) / r$, where $r$ is the cylinder pressure-loss rate in bar/h. This is an operational estimate, not a safety guarantee; it does not reserve the 2 bar software-interlock margin. With default settings:
+The signed pressure-loss rates are averaged over a rolling five-minute window, weighted by the duration between readings. This equals the net pressure drop divided by the window duration, with negative average losses clipped to zero. A boundary value is interpolated when needed. During startup, the available history is used without waiting for five minutes. The average loss rate is displayed in bar/h. During steady CONTROL, cylinder autonomy is estimated as $(P_{source,+} - P_{sample}) / r$, where $r$ is the cylinder pressure-loss rate in bar/h. This is an operational estimate, not a safety guarantee; it does not reserve the 2 bar software-interlock margin. With default settings:
 
-| Display | Colour | Equivalent fitted loss rate |
+| Display | Colour | Equivalent average loss rate |
 |---|---|---|
-| NO LEAK | Green | `<=0.0005 bar/min` after 10 min |
-| WARNING: slight leak | Yellow | `>0.0005` and `<=0.001 bar/min` after 5 min |
-| WARNING: pressure leak | Orange | `>0.001` and `<=0.005 bar/min` after at least 3 min |
-| WARNING: SIGNIFICANT PRESSURE LEAK | Red | `>0.005 bar/min` after at least 3 min |
+| NO LEAK | Green | `<=0.0005 bar/min` after 10 min of uninterrupted monitoring |
+| WARNING: slight leak | Yellow | `>0.0005` and `<=0.001 bar/min`, immediately |
+| WARNING: pressure leak | Orange | `>0.001` and `<=0.005 bar/min` immediately |
+| WARNING: SIGNIFICANT PRESSURE LEAK | Red | `>0.005 bar/min` immediately |
 
 The SETTINGS page permits editing the reference drop and green, yellow, and orange times. Required ordering is `green > yellow > orange > 0`.
 
 A pressure trend does not uniquely identify a physical leak. Thermal equilibration, regulator hysteresis, pressure-medium behaviour, and sensor noise can produce similar signals. Confirm warnings using an appropriate laboratory leak-test procedure.
+
+### 13.4 Manual long term leak measurement
+
+Each side has its own **Measure long term leak** button and adjacent **Reset** button. Start this measurement when the system is stable. The additional result uses a two-hour moving average, independently of the always-visible five-minute result and of the other side. During startup, it uses the available readings and displays the collected window duration out of 120 minutes.
+
+**Reset** clears only that side's long term history and restarts collection from new readings. The short term result and the other side are unaffected. Sample-side collection requires MEASURE without automation; cylinder-side collection permits MEASURE or steady, in-limits CONTROL. Leaving those conditions clears the corresponding history, and changing the cylinder operating mode also restarts its history. Disconnecting ends both manual measurements; reconnect and start them again as needed.
 
 ## 14. Data and logs
 
