@@ -166,8 +166,10 @@ class LeakCard(QFrame):
         controls = QHBoxLayout()
         self.long_term_button = QPushButton()
         self.long_term_reset = QPushButton()
+        self.long_term_stop = QPushButton()
         controls.addWidget(self.long_term_button, 1)
         controls.addWidget(self.long_term_reset)
+        controls.addWidget(self.long_term_stop)
         layout.addLayout(controls)
         self.long_term_value = QLabel()
         self.long_term_value.setAlignment(Qt.AlignCenter)
@@ -250,6 +252,7 @@ class MainWindow(QMainWindow):
             for side in ("sample", "inlet")
         }
         self.long_term_active: set[str] = set()
+        self.long_term_stopped: set[str] = set()
         self.long_term_assessments = {
             side: LeakAssessment("assessing") for side in self.long_term_monitors
         }
@@ -441,6 +444,9 @@ class MainWindow(QMainWindow):
             )
             card.long_term_reset.clicked.connect(
                 lambda checked=False, side=side: self.start_long_term_leak(side)
+            )
+            card.long_term_stop.clicked.connect(
+                lambda checked=False, side=side: self.stop_long_term_leak(side)
             )
         leak_layout.addWidget(self.sample_leak, 1)
         leak_layout.addWidget(self.inlet_leak, 1)
@@ -908,6 +914,7 @@ class MainWindow(QMainWindow):
         self.module_combo.setEnabled(not connected)
         if not connected:
             self.long_term_active.clear()
+            self.long_term_stopped.clear()
             for side, monitor in self.long_term_monitors.items():
                 monitor.reset()
                 self.long_term_assessments[side] = LeakAssessment("assessing")
@@ -1264,6 +1271,7 @@ class MainWindow(QMainWindow):
                     if math.isinf(autonomy_hours)
                     else self.t("control_autonomy", hours=autonomy_hours)
                 )
+        lines.append(self.t("short_term_window", minutes=assessment.observation_minutes))
         card.set_level(assessment.level, "\n".join(lines))
 
     @staticmethod
@@ -1291,26 +1299,38 @@ class MainWindow(QMainWindow):
         """Start or reinitialize only the selected side's manual two-hour average."""
         self.long_term_monitors[side].reset()
         self.long_term_active.add(side)
+        self.long_term_stopped.discard(side)
         self.long_term_assessments[side] = LeakAssessment("assessing")
+        self._refresh_long_term_leaks()
+
+    def stop_long_term_leak(self, side: str) -> None:
+        """Freeze this side's last result without affecting other measurements."""
+        self.long_term_active.discard(side)
+        self.long_term_stopped.add(side)
         self._refresh_long_term_leaks()
 
     def _refresh_long_term_leaks(self) -> None:
         for side, card in self.leak_cards.items():
             active = side in self.long_term_active
+            stopped = side in self.long_term_stopped
             card.long_term_button.setText(self.t("long_term_start"))
             card.long_term_button.setToolTip(self.t("long_term_hint"))
+            card.long_term_stop.setText(self.t("long_term_stop"))
+            card.long_term_stop.setToolTip(self.t("long_term_stop_hint"))
+            card.long_term_stop.setEnabled(self.connected and active)
             card.long_term_reset.setText(self.t("long_term_reset"))
             card.long_term_reset.setToolTip(self.t("long_term_reset_hint"))
             card.long_term_button.setEnabled(self.connected and not active)
-            card.long_term_reset.setEnabled(self.connected and active)
-            card.long_term_value.setVisible(active)
-            if not active:
+            card.long_term_reset.setEnabled(self.connected and (active or stopped))
+            card.long_term_value.setVisible(active or stopped)
+            if not (active or stopped):
                 continue
             assessment = self.long_term_assessments[side]
-            lines = [self.t("long_term_status", status=self.t(assessment.level))]
+            status_key = "long_term_stopped" if stopped else "long_term_status"
+            lines = [self.t(status_key, status=self.t(assessment.level))]
             if assessment.observation_minutes > 0:
                 lines.append(self.t("loss_rate_hour", rate=assessment.rate_bar_min * 60.0))
-                lines.append(self.t("long_term_window", minutes=assessment.observation_minutes))
+            lines.append(self.t("long_term_window", minutes=assessment.observation_minutes))
             card.long_term_value.setText("\n".join(lines))
             foreground = LeakCard.COLORS.get(assessment.level, LeakCard.COLORS["assessing"])[1]
             card.long_term_value.setStyleSheet(f"color: {foreground};")

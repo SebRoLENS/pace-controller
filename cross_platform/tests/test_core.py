@@ -376,8 +376,12 @@ def test_ui_shows_early_loss_rate_and_autonomy() -> None:
     assert displayed[0][0] == "pressure_leak"
     assert "0.180 bar/h" in displayed[0][1]
     assert "10.0 h" in displayed[0][1]
+    assert "0.0 / 5 min" in displayed[0][1]
     MainWindow._apply_leak(window, card, LeakAssessment("paused_control"))
     assert "bar/h" not in displayed[1][1]
+    assert "0.0 / 5 min" in displayed[1][1]
+    MainWindow._apply_leak(window, card, LeakAssessment("no_leak", 0.0, 5.0))
+    assert "5.0 / 5 min" in displayed[2][1]
 
 
 def test_control_autonomy_uses_source_to_sample_pressure_headroom() -> None:
@@ -427,16 +431,32 @@ def test_long_term_buttons_start_and_reset_each_side_independently(monkeypatch, 
         window.on_telemetry(Telemetry(timestamp=0.0, current_pressure_bar=10.0, positive_source_bar=50.0))
         window.sample_leak.long_term_button.click()
         assert window.long_term_active == {"sample"}
+        assert "0.0 / 120 min" in window.sample_leak.long_term_value.text()
         assert not window.inlet_leak.long_term_reset.isEnabled()
         window.inlet_leak.long_term_button.click()
         for timestamp in (1.0, 61.0):
             window.on_telemetry(Telemetry(timestamp=timestamp, current_pressure_bar=10.0 - timestamp * 0.001, positive_source_bar=50.0 - timestamp * 0.002))
         assert "bar/h" in window.sample_leak.long_term_value.text()
         assert "bar/h" in window.inlet_leak.long_term_value.text()
+        sample_history = list(window.long_term_monitors["sample"].samples)
+        sample_assessment = window.long_term_assessments["sample"]
+        window.sample_leak.long_term_stop.click()
+        assert window.long_term_active == {"inlet"}
+        assert window.long_term_stopped == {"sample"}
+        assert "STOPPED" in window.sample_leak.long_term_value.text()
+        assert window.sample_leak.long_term_button.isEnabled()
+        assert not window.sample_leak.long_term_stop.isEnabled()
+        window.on_telemetry(Telemetry(timestamp=61.5, current_pressure_bar=9.9, positive_source_bar=49.8))
+        assert list(window.long_term_monitors["sample"].samples) == sample_history
+        assert window.long_term_assessments["sample"] is sample_assessment
+        assert window.long_term_assessments["inlet"].observation_minutes > sample_assessment.observation_minutes
         inlet_history = list(window.long_term_monitors["inlet"].samples)
         short_history = list(window.sample_monitor.samples)
         window.sample_leak.long_term_reset.click()
         assert not window.long_term_monitors["sample"].samples
+        assert "sample" in window.long_term_active
+        assert "sample" not in window.long_term_stopped
+        assert "0.0 / 120 min" in window.sample_leak.long_term_value.text()
         assert window.long_term_assessments["sample"].observation_minutes == 0.0
         assert list(window.long_term_monitors["inlet"].samples) == inlet_history
         assert list(window.sample_monitor.samples) == short_history
