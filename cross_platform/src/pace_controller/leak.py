@@ -94,6 +94,11 @@ class LeakMonitor:
         slope = fsum((x - mean_x) * (y - mean_y) for x, y in zip(xs, ys)) / denominator
         rate = max(0.0, -slope)
 
+        # Show the fitted number immediately, but wait for three minutes of
+        # available history before assigning any colour or leak classification.
+        if elapsed_minutes < 3.0:
+            return LeakAssessment("assessing", rate, elapsed_minutes)
+
         t = self.thresholds
         rate_hour = rate * 60.0
         # Normalize numerical roundoff at the inclusive colour boundaries.

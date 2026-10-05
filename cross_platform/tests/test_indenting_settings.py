@@ -13,7 +13,7 @@ from pace_controller.models import AppSettings
 def test_hourly_threshold_boundaries(rate, level):
     monitor = LeakMonitor(LeakThresholds())
     monitor.add(0, 50, True)
-    assert monitor.add(60, 50-rate/60, True).level == level
+    assert monitor.add(180, 50-rate/20, True).level == level
 
 
 def test_migration_and_settings_roundtrip(monkeypatch, tmp_path):
@@ -144,3 +144,20 @@ def test_ui_settings_and_pause_editability(monkeypatch, tmp_path):
     finally:
         window.close()
         app.processEvents()
+
+
+@pytest.mark.parametrize("window", [5, 120])
+@pytest.mark.parametrize("rate,level", [(0, "no_leak"), (0.2, "slight_leak"), (0.4, "pressure_leak"), (0.8, "significant_leak")])
+def test_three_minute_classification_delay_restarts_after_pressure_step(window, rate, level):
+    monitor = LeakMonitor(LeakThresholds(), window_minutes=window)
+    for stamp in (0, 1, 179.999, 180):
+        result = monitor.add(stamp, 50 - rate * stamp / 3600, True)
+        assert result.level == (level if stamp == 180 else "assessing")
+        if stamp:
+            assert result.rate_bar_min * 60 == pytest.approx(rate)
+    reset = monitor.add(240, 52, True)
+    assert reset.history_reset and reset.level == "assessing"
+    early = monitor.add(241, 52 - rate / 3600, True)
+    assert early.level == "assessing"
+    assert early.rate_bar_min * 60 == pytest.approx(rate)
+    assert monitor.add(420, 52 - rate / 20, True).level == level

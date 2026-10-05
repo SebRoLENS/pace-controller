@@ -303,7 +303,7 @@ Only decreases are considered pressure losses. Increases are clipped to zero los
 
 ### 13.2 Operating condition
 
-Sample-side history is collected in MEASURE with no active automation. Cylinder/positive-source history is collected both in MEASURE and during steady, in-limits CONTROL, but is reset while the target is moving. The loss rate is shown as soon as two valid readings at different times are available; there is no three-minute waiting period.
+Sample-side history is collected in MEASURE with no active automation. Cylinder/positive-source history is collected both in MEASURE and during steady, in-limits CONTROL, but is reset while the target is moving. The numeric loss rate is shown as soon as two valid readings at different times are available. Colour warnings and classification labels wait for three minutes of history, as described below.
 
 ### 13.3 Calculation and default classes
 
@@ -316,7 +316,7 @@ A linear least-squares fit of pressure versus time is calculated over all readin
 | WARNING: pressure leak | Orange | `>=0.3` and `<=0.6 bar/h` |
 | WARNING: SIGNIFICANT PRESSURE LEAK | Red | `>0.6 bar/h` |
 
-The SETTINGS page directly edits the three colour boundaries in **bar/h**, with a live band summary and a **Restore defaults** button. Press **Save settings** to apply. Required ordering is `0 < green boundary < yellow boundary < orange boundary`. All colours are available as soon as a fitted rate exists, without a separate green waiting period. These thresholds apply to both sides and both short and long term measurements. Existing custom reference-drop/time settings are converted to equivalent hourly limits; old factory defaults become the new 0.1 / 0.3 / 0.6 bar/h defaults.
+The SETTINGS page directly edits the three colour boundaries in **bar/h**, with a live band summary and a **Restore defaults** button. Press **Save settings** to apply. Required ordering is `0 < green boundary < yellow boundary < orange boundary`. The fitted numeric rate is visible immediately. Colours and leak classification labels appear only after at least three minutes of available history; before that, both short and long term results remain neutral and show ASSESSING with the rate and window counter. Each history reset restarts this three-minute period. These thresholds apply to both sides and both short and long term measurements. Existing custom reference-drop/time settings are converted to equivalent hourly limits; old factory defaults become the new 0.1 / 0.3 / 0.6 bar/h defaults.
 
 A pressure trend does not uniquely identify a physical leak. Thermal equilibration, regulator hysteresis, pressure-medium behaviour, and sensor noise can produce similar signals. Confirm warnings using an appropriate laboratory leak-test procedure.
 
