@@ -12,6 +12,8 @@ All notable changes are documented here. The project follows semantic versioning
 
 ## [Unreleased]
 
+- Accept a stable near-zero residual for zero targets after 10 seconds within +/-0.5 bar and a 0.01 bar stability band; display ZERO STABLE while retaining the measured pressure.
+
 - Add independent Stop buttons for long term measurements, keeping the last result visible until a new measurement starts.
 - Display available short term averaging history out of five minutes and long term history from 0 / 120 min.
 - Estimate short term and long term pressure-loss rates using linear least-squares fits over all readings in their rolling windows, instead of endpoint differences.

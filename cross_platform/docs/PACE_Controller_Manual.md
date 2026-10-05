@@ -253,6 +253,12 @@ Rows execute from top to bottom. Dwell begins only after the PACE reports in-lim
 
 At completion the software requests MEASURE unless **Keep CONTROL after final step** was explicitly selected. Timeouts and user interruption request MEASURE.
 
+### Stable residual at target zero
+
+When the requested target is exactly 0 bar, the application also accepts a near-zero plateau even if the instrument never reports IN LIMIT. The residual must remain within +/-0.5 bar and the pressure range over 10 seconds must not exceed 0.01 bar, with continuous valid readings. A pressure still decreasing or a plateau outside this tolerance does not qualify.
+
+The target card shows **ZERO STABLE** (Italian: **ZERO STABILE**). The measured residual remains displayed and logged at its actual value; it is not replaced by zero and the instrument's IN LIMIT flag is not altered. Manual, indenting and routine zero steps can complete, or start their requested dwell, using this condition. Starting another step, leaving CONTROL, missing telemetry or disconnecting clears the stability history. Nonzero targets retain the instrument's normal IN LIMIT criterion.
+
 ## 12. Software protection rules
 
 ### 12.1 Large target change
