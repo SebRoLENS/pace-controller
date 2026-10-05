@@ -6,7 +6,7 @@
 
 <p align="center">
   <a href="https://github.com/SebRoLENS/pace-controller/releases/latest"><img src="https://img.shields.io/github/v/release/SebRoLENS/pace-controller" alt="Version"></a>
-  <a href="https://doi.org/10.5281/zenodo.23159629"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.23159629.svg" alt="DOI"></a>
+  <a href="https://github.com/SebRoLENS/pace-controller/releases/latest"><img src="https://img.shields.io/badge/DOI-pending-lightgrey" alt="DOI"></a>
   <a href="https://github.com/SebRoLENS/pace-controller/releases/latest"><img src="https://img.shields.io/badge/Windows-10%2F11-0078D4?logo=windows" alt="Windows"></a>
   <a href="https://github.com/SebRoLENS/pace-controller/releases/latest"><img src="https://img.shields.io/badge/Linux-x86__64-FCC624?logo=linux&logoColor=black" alt="Linux"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="MIT License"></a>
@@ -14,7 +14,7 @@
 
 Cross-platform graphical controller for classic Druck **PACE 5000** and **PACE 6000** instruments using Ethernet or RS-232.
 
-Current public version: **1.1.4**
+Current public version: **1.1.5**
 
 > [!CAUTION]
 > This application sends real pressure-control and vent commands. It is not a certified safety system and does not replace pressure-relief devices, hardware interlocks, instrument limits, laboratory procedures, or direct operator supervision.
@@ -117,10 +117,11 @@ python -m pytest
 If PACE Controller contributes to published work, cite the exact version used.
 GitHub also provides a **Cite this repository** entry from [`CITATION.cff`](CITATION.cff).
 
-> Romi, S. (2026). *PACE Controller* (Version 1.1.4)
-> [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.23159629
+Version **1.1.5** will be archived by the Zenodo GitHub integration. The
+version DOI will then be inserted here automatically.
 
-DOI: [**10.5281/zenodo.23159629**](https://doi.org/10.5281/zenodo.23159629)
+> Romi, S. (2026). *PACE Controller* (Version 1.1.5) [Computer software].
+> GitHub. https://github.com/SebRoLENS/pace-controller/releases/tag/v1.1.5
 
 ## License and independence
 
